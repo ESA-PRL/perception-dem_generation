@@ -1,0 +1,23 @@
+<package>
+  <description brief="Libraries receives a distance frame a. Returns a colorized pcl mesh">
+  Libraries receives a distance frame and opencv color frame and returns a colorized pcl mesh.
+  </description>
+  <author>Marco Pagnamenta/marco.pagnamenta@esa.int</author>
+  <license></license>
+  <url>http://</url>
+  <logo>http://</logo>
+  <depend package="base/cmake" />
+  <!--
+   To add any dependencies use the depend tag
+  <depend package="dummy-dependency-0" />
+	...
+  <depend package="dummy-dependency-n-1" />
+  <depend package="dummy-dependency-n" />
+  -->
+  <depend package="base/cmake" />
+  <depend package="base/types" />
+  <depend package="opencv" />
+  <depend package="image_processing/frame_helper" />
+  <depend package="slam/pcl" />
+  <depend package="gui/vizkit3d" />
+</package>
