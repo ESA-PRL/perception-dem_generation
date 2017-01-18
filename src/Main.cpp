@@ -1,9 +1,9 @@
 #include <iostream>
-#include <dem_generation/Dummy.hpp>
+#include <dem_generation/dem_generation.hpp>
 
 int main(int argc, char** argv)
 {
-    dem_generation::DummyClass dummyClass;
+    dem_generation::DEM dummyClass;
     dummyClass.welcome();
 
     return 0;
