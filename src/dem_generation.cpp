@@ -48,21 +48,22 @@ void DEM::setCameraParameters(int width, int height, float cx, float cy, float f
   	{
 		for(int j = 1; j<=width; j++)
 		{
-			xArray.push_back(ix);
-			yArray.push_back(j);
+			yArray_const.push_back(ix);
+			xArray_const.push_back(j);
 		}
 		ix++;
 	}
 	
-	transform(xArray.begin(), xArray.end(), xArray.begin(),
+	// prepare x and y arrays
+	transform(xArray_const.begin(), xArray_const.end(), xArray_const.begin(),
           bind1st(std::plus<float>(), -cx)); 
-    transform(yArray.begin(), yArray.end(), yArray.begin(),
+    transform(yArray_const.begin(), yArray_const.end(), yArray_const.begin(),
           bind1st(std::plus<float>(), -cy)); 
             
-    transform(xArray.begin(), xArray.end(), xArray.begin(),
+    transform(xArray_const.begin(), xArray_const.end(), xArray_const.begin(),
           bind1st(std::multiplies<float>(), 1/fx)); 
-    transform(yArray.begin(), yArray.end(), yArray.begin(),
-          bind1st(std::multiplies<float>(), 1/fy));         
+    transform(yArray_const.begin(), yArray_const.end(), yArray_const.begin(),
+          bind1st(std::multiplies<float>(), 1/fy));             
           
 	camera_set = 1;
 }
@@ -88,77 +89,9 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 {
 	if(!camera_set)
 		std::cerr << "The camera properties have not been set yet!\n";  	
-	
-	  const int rows_p= height*width;
-  const int cols_p= 3;
-  double **points = (double **) malloc(sizeof(double *)*rows_p);
-  for(int i=0; i<rows_p; i++){
-	/* Allocate array, store pointer  */
-	points[i] = (double *) malloc(sizeof(double)*cols_p); 
-  }  
-
-  cloud_input_p->width    = width;
-  cloud_input_p->height   = height;
-  cloud_input_p->is_dense = false;
-  cloud_input_p->points.resize (width*height);
-
-	// std::numeric_limits<float>::quiet_NaN()
-	std::cout << "check2" << std::endl;
-
-  
-  int valid_points=0;
-
-  int idxi=0; int idxj=-1; int idx=-1;
-  const float bad_point = std::numeric_limits<float>::quiet_NaN();
-
- 
-
-
-  
-  for(int opp = 0; opp < width*height; opp++)
-  {
-	idxj++; idx++;
-	if (idxj>width-1){
-		idxj=0;idxi++;
-	}
-	//line.erase (0,2);
-//std::cout << "line: " << line << " idx: " << idx << std::endl;
-
-	if (1==0)//line.compare("nan") == 0)
-	{
-		points[idx][0]=idxi;
-		points[idx][1]=idxj;
-		points[idx][2]=0;
-		//std::cout << "no!!!!!!" << idx << std::endl;
-		//valid_points++;
-		//cloud->points[valid_points].z= bad_point;
-		//cloud->points[valid_points].x= bad_point;
-		//cloud->points[valid_points].y= bad_point;
-
-	}else{
 		
-		//cout<< "ei" << endl;
-		valid_points++;
-        	points[idx][0]=idxi;
-		points[idx][1]=idxj;
-		points[idx][2]=distance[opp];
-
-
-        	cloud_input_p->points[valid_points].z= points[idx][2];
-		cloud_input_p->points[valid_points].x= cloud_input_p->points[valid_points].z * (points[idx][1]+ 1 - cx)/ fx;
-		cloud_input_p->points[valid_points].y= cloud_input_p->points[valid_points].z * (points[idx][0]+ 1 - cy)/ fy;
-		//float tmp = cloud->points[valid_points].z;
-		//cloud->points[valid_points].x= cloud->points[valid_points].y;
-		//cloud->points[valid_points].z = cloud->points[valid_points].y;
-        	//cloud->points[valid_points].y = tmp; 
-		
-
-	}
-	
-  }
-	
 	// reserve space tbd is this needed here??
-	/*cloud_input_p->width    = width;
+	cloud_input_p->width    = width;
 	cloud_input_p->height   = height;
 	cloud_input_p->is_dense = false;
 	cloud_input_p->points.resize (width*height);
@@ -179,7 +112,7 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 	}
 
 	std::vector<int> indices;
-	pcl::removeNaNFromPointCloud(*cloud_input_p,*cloud_input_p, indices);*/
+	pcl::removeNaNFromPointCloud(*cloud_input_p,*cloud_input_p, indices);
 	
 }
 
@@ -188,26 +121,34 @@ void DEM::pointCloud2Mesh()
 	
 	Eigen::Vector4f	filter_box_min, filter_box_max;
 	
-	filter_box_min[0] = -5.0; 
-	filter_box_min[1] = -5.0; 
-	filter_box_min[2] = -5.0; 
+	filter_box_min[0] = -4.0; 
+	filter_box_min[1] = -4.0; 
+	filter_box_min[2] = 0.5; 
 	
-	filter_box_max[0] = 5.0; 
-	filter_box_max[1] = 5.0; 
-	filter_box_max[2] = 5.0; 
+	filter_box_max[0] = 4.0; 
+	filter_box_max[1] = 4.0; 
+	filter_box_max[2] = 4.0; 
+	
+	// Voxel grid
+	pcl::VoxelGrid<pcl::PointXYZ> sor;
+	sor.setInputCloud (cloud_input_p);					
+	sor.setLeafSize (0.05f, 0.05f, 0.05f);
+	sor.filter (*cloud_filtered_p);				
 	
 	// remove out of bound points
+	// ATTENTION, if this is performed before the voxel filter,
+	// then there will be degenerate faces in the mesh (dont know why)
+	// but the first voxel grid may fail because there are too
+	// many points, so it has to be executed again after the crop box
 	pcl::CropBox<pcl::PointXYZ> cb;
-	cb.setInputCloud(cloud_input_p);
+	cb.setInputCloud(cloud_filtered_p);
 	cb.setMin(filter_box_min);
 	cb.setMax(filter_box_max);
 	cb.filter(*cloud_filtered_p);
 	
-	// Voxel grid
-	pcl::VoxelGrid<pcl::PointXYZ> sor;
 	sor.setInputCloud (cloud_filtered_p);					
 	sor.setLeafSize (0.05f, 0.05f, 0.05f);
-	sor.filter (*cloud_filtered_p);				
+	sor.filter (*cloud_filtered_p);	
 	
 	// Normal estimation*
 	pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
@@ -254,8 +195,6 @@ void DEM::pointCloud2Mesh()
 	std::vector<int> parts = gp3.getPartIDs();
 	std::vector<int> states = gp3.getPointStates();
 
-	std::cout << "check4" << std::endl;
-
 	//Texture the mesh
 
 	// test texture mapping
@@ -274,11 +213,6 @@ void DEM::pointCloud2Mesh()
 	cam.width = width;
 	cam.texture_file = color_frame_location;				
 	cam_vector.push_back(cam);
-
-	std::cout << "check5" << std::endl;
-
-	// set mesh scale control
-	//tm.setF(1);
 
     pcl::TexMaterial tex_material;
 
@@ -303,11 +237,7 @@ void DEM::pointCloud2Mesh()
 
     // set 2 texture for 2 mesh
     std::vector<std::string> tex_files;
-    
-
     tex_files = color_frame_location_vect;
-
-std::cout << "check6" << std::endl;
 
     // set texture files
     tm.setTextureFiles(tex_files);
@@ -324,13 +254,10 @@ std::cout << "check6" << std::endl;
         }
 
     tex_mesh.tex_polygons.push_back(polygon1);
-
-	std::cout << "check7" << std::endl;
-
+	
 	// mapping
     mapTexture2MeshUVnew(tex_mesh, tex_material, tex_files);
     
-
     // Save obj, view in meshlab.
 	std::stringstream ss;
 	std::string count;
@@ -440,3 +367,71 @@ std::string DEM::getImagePath()
 {
 	return color_frame_location;
 }
+
+	/*  const int rows_p= height*width;
+  const int cols_p= 3;
+  double **points = (double **) malloc(sizeof(double *)*rows_p);
+  for(int i=0; i<rows_p; i++){
+	// Allocate array, store pointer  
+	points[i] = (double *) malloc(sizeof(double)*cols_p); 
+  }  
+
+  cloud_input_p->width    = width;
+  cloud_input_p->height   = height;
+  cloud_input_p->is_dense = false;
+  cloud_input_p->points.resize (width*height);
+
+	// std::numeric_limits<float>::quiet_NaN()
+	std::cout << "check2" << std::endl;
+
+  
+  int valid_points=0;
+
+  int idxi=0; int idxj=-1; int idx=-1;
+  const float bad_point = std::numeric_limits<float>::quiet_NaN();
+
+ 
+
+
+  
+  for(int opp = 0; opp < width*height; opp++)
+  {
+	idxj++; idx++;
+	if (idxj>width-1){
+		idxj=0;idxi++;
+	}
+	//line.erase (0,2);
+//std::cout << "line: " << line << " idx: " << idx << std::endl;
+
+	if (1==0)//line.compare("nan") == 0)
+	{
+		points[idx][0]=idxi;
+		points[idx][1]=idxj;
+		points[idx][2]=0;
+		//std::cout << "no!!!!!!" << idx << std::endl;
+		//valid_points++;
+		//cloud->points[valid_points].z= bad_point;
+		//cloud->points[valid_points].x= bad_point;
+		//cloud->points[valid_points].y= bad_point;
+
+	}else{
+		
+		//cout<< "ei" << endl;
+		valid_points++;
+        	points[idx][0]=idxi;
+		points[idx][1]=idxj;
+		points[idx][2]=distance[opp];
+
+
+        	cloud_input_p->points[valid_points].z= points[idx][2];
+		cloud_input_p->points[valid_points].x= cloud_input_p->points[valid_points].z * (points[idx][1]+ 1 - cx)/ fx;
+		cloud_input_p->points[valid_points].y= cloud_input_p->points[valid_points].z * (points[idx][0]+ 1 - cy)/ fy;
+		//float tmp = cloud->points[valid_points].z;
+		//cloud->points[valid_points].x= cloud->points[valid_points].y;
+		//cloud->points[valid_points].z = cloud->points[valid_points].y;
+        	//cloud->points[valid_points].y = tmp; 
+		
+
+	}
+	
+  }*/

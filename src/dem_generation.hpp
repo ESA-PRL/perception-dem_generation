@@ -24,6 +24,7 @@
 #include <pcl/io/vtk_io.h>
 #include <pcl/surface/texture_mapping.h>
 #include <pcl/io/obj_io.h>
+//#include <pcl/surface/3rdparty/opennurbs/opennurbs_mesh.h>
 
 #include <sys/time.h>              
 
