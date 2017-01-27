@@ -44,7 +44,8 @@ namespace dem_generation
             void pointCloud2Mesh();
             void mapTexture2MeshUVnew(pcl::TextureMesh &tex_mesh, pcl::TexMaterial &tex_material, std::vector<std::string> &tex_files);
 			std::string getMeshPath();
-            std::string getImagePath();
+            std::string getImageLeftPath();
+            std::string getImageRightPath();
             
 		private:
 		
@@ -66,7 +67,7 @@ namespace dem_generation
 			pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_input_p, cloud_filtered_p;
 
 			// location of the saved color frame and camera name
-			std::string color_frame_location, mesh_location,default_save_location,camera_name;
+			std::string color_frame_location_left, color_frame_location_right, mesh_location, default_save_location, camera_name;
     };
 
 } // end namespace dem_generation

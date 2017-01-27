@@ -75,8 +75,13 @@ void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
 	std::string count;
 	ss << processing_count;
 	count = ss.str();
-	color_frame_location = default_save_location + camera_name + "_" + count + ".png";
-	cv::imwrite(color_frame_location, color_frame_left);
+	color_frame_location_left = default_save_location + camera_name + "_" + count + "_left.png";
+	cv::imwrite(color_frame_location_left, color_frame_left);
+        if ((camera_name=="FLOC_STEREO") || (camera_name=="RLOC_STEREO"))
+        {
+            color_frame_location_right = default_save_location + camera_name + "_" + count + "_right.png";
+            cv::imwrite(color_frame_location_right, color_frame_right);
+        }
 }
 
 void DEM::setFileDestination(std::string default_save_location, std::string camera_name)
@@ -202,7 +207,7 @@ void DEM::pointCloud2Mesh()
 	// read current camera
 
     std::vector<std::string> color_frame_location_vect; 
-    color_frame_location_vect.push_back(color_frame_location);  // TODO CLEAN UP
+    color_frame_location_vect.push_back(color_frame_location_left);  // TODO CLEAN UP
 
 	// IS ALL THIS USED??
 	pcl::texture_mapping::CameraVector cam_vector;
@@ -211,7 +216,7 @@ void DEM::pointCloud2Mesh()
 	cam.focal_length = fx;
 	cam.height = height;
 	cam.width = width;
-	cam.texture_file = color_frame_location;				
+	cam.texture_file = color_frame_location_left;				
 	cam_vector.push_back(cam);
 
     pcl::TexMaterial tex_material;
@@ -363,11 +368,15 @@ std::string DEM::getMeshPath()
 }
 
 
-std::string DEM::getImagePath()
+std::string DEM::getImageLeftPath()
 {
-	return color_frame_location;
+	return color_frame_location_left;
 }
 
+std::string DEM::getImageRightPath()
+{
+	return color_frame_location_right;
+}
 	/*  const int rows_p= height*width;
   const int cols_p= 3;
   double **points = (double **) malloc(sizeof(double *)*rows_p);
