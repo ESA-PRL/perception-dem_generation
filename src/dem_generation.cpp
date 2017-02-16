@@ -95,6 +95,8 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 	if(!camera_set)
 		std::cerr << "The camera properties have not been set yet!\n";  	
 		
+	
+		
 	// reserve space tbd is this needed here??
 	cloud_input_p->width    = width;
 	cloud_input_p->height   = height;
@@ -109,7 +111,7 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 					distance.begin(), yArray.begin(), 
 					std::multiplies<float>() );
 					
-	for(int i = 0; i<cloud_input_p->size(); i++)
+	for(unsigned int i = 0; i<cloud_input_p->size(); i++)
 	{
 		cloud_input_p->points[i].x = xArray[i];
 		cloud_input_p->points[i].y = yArray[i];
@@ -171,7 +173,7 @@ void DEM::pointCloud2Mesh()
 	pcl::concatenateFields (*cloud_filtered_p, *normals, *cloud_with_normals);
 	//* cloud_with_normals = cloud + normals
 	//Flip all normals towards the viewer
-	for(int i=0; i<cloud_with_normals->width*cloud_with_normals->height; i++){
+	for(unsigned int i=0; i<cloud_with_normals->width*cloud_with_normals->height; i++){
 		pcl::flipNormalTowardsViewpoint(cloud_with_normals->points[i], 0.0f, 0.0f, 0.0f, cloud_with_normals->points[i].normal_x, cloud_with_normals->points[i].normal_y, cloud_with_normals->points[i].normal_z);
 	}
 	// Create search tree*
@@ -311,15 +313,7 @@ void DEM::mapTexture2MeshUVnew (pcl::TextureMesh &tex_mesh, pcl::TexMaterial &te
 		if (z_ > z_lowest)
 		z_highest = z_;
 	}
-	// x
-	float x_range = (x_lowest - x_highest) * -1;
-	float x_offset = 0 - x_lowest;
-	// x
-	// float y_range = (y_lowest - y_highest)*-1;
-	// float y_offset = 0 - y_lowest;
-	// z
-	float z_range = (z_lowest - z_highest) * -1;
-	float z_offset = 0 - z_lowest;
+	
 	
 	// texture coordinates for each mesh
 	std::vector<std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f> > >texture_map;
@@ -361,6 +355,20 @@ void DEM::mapTexture2MeshUVnew (pcl::TextureMesh &tex_mesh, pcl::TexMaterial &te
 	}// end meshes
 }
 
+void DEM::saveDistanceFrame(std::vector<float> distance)
+{
+	cv::Mat tmp = cv::Mat(distance).reshape(0,height);
+	std::stringstream ss;
+	std::string count;
+	ss << processing_count;
+	count = ss.str();
+	
+	cv::Mat distance_frame(height, width, CV_8UC4, tmp.data);
+	
+	distance_frame_location = default_save_location + camera_name + "_" + count + "_distance.bmp";
+	cv::imwrite(distance_frame_location, distance_frame);	
+}
+
 
 std::string DEM::getMeshPath()
 {
@@ -377,6 +385,12 @@ std::string DEM::getImageRightPath()
 {
 	return color_frame_location_right;
 }
+
+std::string DEM::getDistanceFramePath()
+{
+	return distance_frame_location;
+}
+
 	/*  const int rows_p= height*width;
   const int cols_p= 3;
   double **points = (double **) malloc(sizeof(double *)*rows_p);

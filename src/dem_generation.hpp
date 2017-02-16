@@ -43,9 +43,12 @@ namespace dem_generation
             void distance2pointCloud(std::vector<float> distance);
             void pointCloud2Mesh();
             void mapTexture2MeshUVnew(pcl::TextureMesh &tex_mesh, pcl::TexMaterial &tex_material, std::vector<std::string> &tex_files);
+            void saveDistanceFrame(std::vector<float> distance);
 			std::string getMeshPath();
             std::string getImageLeftPath();
             std::string getImageRightPath();
+			std::string getDistanceFramePath();
+
             
 		private:
 		
@@ -67,7 +70,9 @@ namespace dem_generation
 			pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_input_p, cloud_filtered_p;
 
 			// location of the saved color frame and camera name
-			std::string color_frame_location_left, color_frame_location_right, mesh_location, default_save_location, camera_name;
+			std::string color_frame_location_left, color_frame_location_right, 
+					mesh_location, default_save_location, camera_name,
+					distance_frame_location;
     };
 
 } // end namespace dem_generation
