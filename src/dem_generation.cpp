@@ -11,11 +11,11 @@ DEM::DEM()
 {
 	
 	camera_set = 0;
+	timestamp_set = 0;
 
 	cloud_input_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
 	cloud_filtered_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
 	
-	processing_count = 1;
 }
 
 void DEM::welcome()
@@ -68,20 +68,29 @@ void DEM::setCameraParameters(int width, int height, float cx, float cy, float f
 	camera_set = 1;
 }
 
+void DEM::setTimestamp(std::string timestamp)
+{
+	// save timestamp
+	timestamp.erase(std::remove(timestamp.begin(),timestamp.end(), ':' ), timestamp.end() ) ;
+	sensor_data_time = timestamp;
+	
+	timestamp_set = 1;
+}
+
 void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
 {	
+	if(!timestamp_set)
+		std::cerr << "The timestamp has never been set!\n";  	
+	
 	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
-	std::stringstream ss;
-	std::string count;
-	ss << processing_count;
-	count = ss.str();
-	color_frame_location_left = default_save_location + camera_name + "_" + count + "_left.png";
+	color_frame_location_left = default_save_location + camera_name + "_" + sensor_data_time + "_left.png";
 	cv::imwrite(color_frame_location_left, color_frame_left);
-        if ((camera_name=="FLOC_STEREO") || (camera_name=="RLOC_STEREO"))
-        {
-            color_frame_location_right = default_save_location + camera_name + "_" + count + "_right.png";
-            cv::imwrite(color_frame_location_right, color_frame_right);
-        }
+	
+	if ((camera_name=="FLOC_STEREO") || (camera_name=="RLOC_STEREO"))
+	{
+		color_frame_location_right = default_save_location + camera_name + "_" + sensor_data_time + "_right.png";
+		cv::imwrite(color_frame_location_right, color_frame_right);
+	}
 }
 
 void DEM::setFileDestination(std::string default_save_location, std::string camera_name)
@@ -94,9 +103,7 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 {
 	if(!camera_set)
 		std::cerr << "The camera properties have not been set yet!\n";  	
-		
 	
-		
 	// reserve space tbd is this needed here??
 	cloud_input_p->width    = width;
 	cloud_input_p->height   = height;
@@ -125,7 +132,9 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 
 void DEM::pointCloud2Mesh()
 {
-	
+	if(!timestamp_set)
+		std::cerr << "The timestamp has never been set!\n";  
+		
 	Eigen::Vector4f	filter_box_min, filter_box_max;
 	
 	filter_box_min[0] = -4.0; 
@@ -265,17 +274,9 @@ void DEM::pointCloud2Mesh()
 	// mapping
     mapTexture2MeshUVnew(tex_mesh, tex_material, tex_files);
     
-    // Save obj, view in meshlab.
-	std::stringstream ss;
-	std::string count;
-	ss << processing_count;
-	count = ss.str();
-	
-    mesh_location = default_save_location + camera_name + "_" + count + ".obj";
+    // Save obj, view in meshlab.	
+    mesh_location = default_save_location + camera_name + "_" + sensor_data_time + ".obj";
     pcl::io::saveOBJFile (mesh_location, tex_mesh , 6); 
-
-    
-    processing_count++;
 }
 
 
@@ -358,21 +359,23 @@ void DEM::mapTexture2MeshUVnew (pcl::TextureMesh &tex_mesh, pcl::TexMaterial &te
 
 void DEM::saveDistanceFrame(std::vector<float> distance)
 {
+	if(!timestamp_set)
+		std::cerr << "The timestamp has never been set!\n";  
+		
 	cv::Mat tmp = cv::Mat(distance).reshape(0,height);
-	std::stringstream ss;
-	std::string count;
-	ss << processing_count;
-	count = ss.str();
 	
 	cv::Mat distance_frame(height, width, CV_8UC4, tmp.data);
 	
-	distance_frame_location = default_save_location + camera_name + "_" + count + "_distance.bmp";
+	distance_frame_location = default_save_location + camera_name + "_" + sensor_data_time + "_distance.bmp";
 	cv::imwrite(distance_frame_location, distance_frame);	
 }
 
 void DEM::savePointCloud()
 {
-	point_cloud_obj_location = default_save_location + camera_name + "_" + "_pc.obj";
+	if(!timestamp_set)
+		std::cerr << "The timestamp has never been set!\n";  
+		
+	point_cloud_obj_location = default_save_location + camera_name + "_" + sensor_data_time + "_pc.obj";
 
     pcl::PolygonMesh mesh;
     pcl::toPCLPointCloud2(*cloud_filtered_p, mesh.cloud);

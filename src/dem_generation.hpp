@@ -39,6 +39,7 @@ namespace dem_generation
 			DEM();
             void welcome();
             void setCameraParameters(int width, int height, float cx, float cy, float fx, float fy);
+            void setTimestamp(std::string sensor_data_time);
             void setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right);
             void setFileDestination(std::string default_save_location, std::string camera_name);
             void distance2pointCloud(std::vector<float> distance);
@@ -55,7 +56,8 @@ namespace dem_generation
 		private:
 		
 			int camera_set;
-			int processing_count;
+			int timestamp_set;
+
 		
 			// camera parameters
 			float width;
@@ -76,6 +78,9 @@ namespace dem_generation
 					mesh_location, default_save_location, camera_name,
 					distance_frame_location, point_cloud_ply_location, 
 					point_cloud_obj_location;
+					
+			// data capture time string
+			std::string sensor_data_time;
     };
 
 } // end namespace dem_generation
