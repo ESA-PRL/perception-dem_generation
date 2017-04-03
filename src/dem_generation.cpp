@@ -273,6 +273,7 @@ void DEM::pointCloud2Mesh()
 	
     mesh_location = default_save_location + camera_name + "_" + count + ".obj";
     pcl::io::saveOBJFile (mesh_location, tex_mesh , 6); 
+
     
     processing_count++;
 }
@@ -367,6 +368,16 @@ void DEM::saveDistanceFrame(std::vector<float> distance)
 	
 	distance_frame_location = default_save_location + camera_name + "_" + count + "_distance.bmp";
 	cv::imwrite(distance_frame_location, distance_frame);	
+}
+
+void DEM::savePointCloud()
+{
+	point_cloud_obj_location = default_save_location + camera_name + "_" + "_pc.obj";
+
+    pcl::PolygonMesh mesh;
+    pcl::toPCLPointCloud2(*cloud_filtered_p, mesh.cloud);
+    pcl::io::saveOBJFile(point_cloud_obj_location, mesh);
+
 }
 
 

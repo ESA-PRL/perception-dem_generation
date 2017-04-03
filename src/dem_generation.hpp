@@ -12,7 +12,6 @@
 #include <string> 
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
-#include <pcl/io/ply_io.h>
 #include <pcl/io/file_io.h>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h> 
@@ -20,10 +19,12 @@
 #include <pcl/surface/gp3.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/crop_box.h>
-#include <time.h>
 #include <pcl/io/vtk_io.h>
-#include <pcl/surface/texture_mapping.h>
 #include <pcl/io/obj_io.h>
+#include <pcl/io/ply_io.h>
+#include <pcl/surface/texture_mapping.h>
+#include <time.h>
+
 //#include <pcl/surface/3rdparty/opennurbs/opennurbs_mesh.h>
 
 #include <sys/time.h>              
@@ -44,6 +45,7 @@ namespace dem_generation
             void pointCloud2Mesh();
             void mapTexture2MeshUVnew(pcl::TextureMesh &tex_mesh, pcl::TexMaterial &tex_material, std::vector<std::string> &tex_files);
             void saveDistanceFrame(std::vector<float> distance);
+			void savePointCloud();
 			std::string getMeshPath();
             std::string getImageLeftPath();
             std::string getImageRightPath();
@@ -72,7 +74,8 @@ namespace dem_generation
 			// location of the saved color frame and camera name
 			std::string color_frame_location_left, color_frame_location_right, 
 					mesh_location, default_save_location, camera_name,
-					distance_frame_location;
+					distance_frame_location, point_cloud_ply_location, 
+					point_cloud_obj_location;
     };
 
 } // end namespace dem_generation
