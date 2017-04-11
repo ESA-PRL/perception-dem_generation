@@ -322,7 +322,7 @@ void DEM::mapTexture2MeshUVnew (pcl::TextureMesh &tex_mesh, pcl::TexMaterial &te
 	for (size_t m = 0; m < tex_mesh.tex_polygons.size (); ++m)
 	{
 		// texture coordinates for each mesh
-		std::vector<Eigen::Vector2f> texture_map_tmp;
+		std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f> > texture_map_tmp;
 		
 		// processing for each face
 		for (size_t i = 0; i < tex_mesh.tex_polygons[m].size (); ++i)
