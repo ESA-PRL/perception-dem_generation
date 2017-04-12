@@ -83,14 +83,17 @@ void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
 		std::cerr << "The timestamp has never been set!\n";  	
 	
 	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
-	color_frame_location_left = default_save_location + camera_name + "_" + sensor_data_time + "_left.png";
+	std::stringstream ss;
+	std::string count;
+	ss << processing_count;
+	count = ss.str();
+	color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + count + ".png";
 	cv::imwrite(color_frame_location_left, color_frame_left);
-	
-	if ((camera_name=="FLOC_STEREO") || (camera_name=="RLOC_STEREO"))
-	{
-		color_frame_location_right = default_save_location + camera_name + "_" + sensor_data_time + "_right.png";
-		cv::imwrite(color_frame_location_right, color_frame_right);
-	}
+        if ((camera_name=="FLOC") || (camera_name=="RLOC"))
+        {
+            color_frame_location_right = default_save_location + "IMAGE_" + camera_name + "_" + count + "_right.png";
+            cv::imwrite(color_frame_location_right, color_frame_right);
+        }
 }
 
 void DEM::setFileDestination(std::string default_save_location, std::string camera_name)
@@ -274,9 +277,14 @@ void DEM::pointCloud2Mesh()
 	// mapping
     mapTexture2MeshUVnew(tex_mesh, tex_material, tex_files);
     
-    // Save obj, view in meshlab.	
-    mesh_location = default_save_location + camera_name + "_" + sensor_data_time + ".obj";
-    pcl::io::saveOBJFile (mesh_location, tex_mesh , 6); 
+    // Save obj, view in meshlab.
+    std::stringstream ss;
+    std::string count;
+    ss << processing_count;
+    count = ss.str();
+	
+    mesh_location = default_save_location + "DEM_" + camera_name + "_" + count + ".obj";
+    pcl::io::saveOBJFile (mesh_location, tex_mesh , 6);
 }
 
 
@@ -366,7 +374,7 @@ void DEM::saveDistanceFrame(std::vector<float> distance)
 	
 	cv::Mat distance_frame(height, width, CV_8UC4, tmp.data);
 	
-	distance_frame_location = default_save_location + camera_name + "_" + sensor_data_time + "_distance.bmp";
+	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + count + ".bmp";
 	cv::imwrite(distance_frame_location, distance_frame);	
 }
 
