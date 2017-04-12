@@ -11,10 +11,11 @@ DEM::DEM()
 {
 	
 	camera_set = 0;
-	timestamp_set = 0;
 
 	cloud_input_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
 	cloud_filtered_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
+
+        processing_count=1;
 	
 }
 
@@ -68,20 +69,10 @@ void DEM::setCameraParameters(int width, int height, float cx, float cy, float f
 	camera_set = 1;
 }
 
-void DEM::setTimestamp(std::string timestamp)
-{
-	// save timestamp
-	timestamp.erase(std::remove(timestamp.begin(),timestamp.end(), ':' ), timestamp.end() ) ;
-	sensor_data_time = timestamp;
-	
-	timestamp_set = 1;
-}
 
 void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
 {	
-	if(!timestamp_set)
-		std::cerr << "The timestamp has never been set!\n";  	
-	
+
 	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
 	std::stringstream ss;
 	std::string count;
@@ -135,9 +126,7 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 
 void DEM::pointCloud2Mesh()
 {
-	if(!timestamp_set)
-		std::cerr << "The timestamp has never been set!\n";  
-		
+	
 	Eigen::Vector4f	filter_box_min, filter_box_max;
 	
 	filter_box_min[0] = -4.0; 
@@ -285,6 +274,8 @@ void DEM::pointCloud2Mesh()
 	
     mesh_location = default_save_location + "DEM_" + camera_name + "_" + count + ".obj";
     pcl::io::saveOBJFile (mesh_location, tex_mesh , 6);
+
+    processing_count++;
 }
 
 
@@ -367,23 +358,27 @@ void DEM::mapTexture2MeshUVnew (pcl::TextureMesh &tex_mesh, pcl::TexMaterial &te
 
 void DEM::saveDistanceFrame(std::vector<float> distance)
 {
-	if(!timestamp_set)
-		std::cerr << "The timestamp has never been set!\n";  
-		
+	
 	cv::Mat tmp = cv::Mat(distance).reshape(0,height);
 	
 	cv::Mat distance_frame(height, width, CV_8UC4, tmp.data);
-	
+	std::stringstream ss;
+        std::string count;
+        ss << processing_count;
+        count = ss.str();
+
 	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + count + ".bmp";
 	cv::imwrite(distance_frame_location, distance_frame);	
 }
 
 void DEM::savePointCloud()
 {
-	if(!timestamp_set)
-		std::cerr << "The timestamp has never been set!\n";  
-		
-	point_cloud_obj_location = default_save_location + camera_name + "_" + sensor_data_time + "_pc.obj";
+
+    std::stringstream ss;
+    std::string count;
+    ss << processing_count;
+    count = ss.str();
+    point_cloud_obj_location = default_save_location + camera_name + "_" + count + "_pc.obj";
 
     pcl::PolygonMesh mesh;
     pcl::toPCLPointCloud2(*cloud_filtered_p, mesh.cloud);
