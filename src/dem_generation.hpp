@@ -37,12 +37,12 @@ namespace dem_generation
         public: 
  
 			DEM();
-            void welcome();
             void setCameraParameters(int width, int height, float cx, float cy, float fx, float fy);
             void setTimestamp(std::string sensor_data_time);
             void setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right);
             void setFileDestination(std::string default_save_location, std::string camera_name);
             void distance2pointCloud(std::vector<float> distance);
+            void setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud);
             void pointCloud2Mesh();
             void mapTexture2MeshUVnew(pcl::TextureMesh &tex_mesh, pcl::TexMaterial &tex_material, std::vector<std::string> &tex_files);
             void saveDistanceFrame(std::vector<float> distance);

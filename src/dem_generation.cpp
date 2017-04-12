@@ -18,11 +18,6 @@ DEM::DEM()
 	
 }
 
-void DEM::welcome()
-{
-    cout << "You successfully compiled and executed DummyProject. Welcome!" << endl;
-}
-
 void DEM::setCameraParameters(int width, int height, float cx, float cy, float fx, float fy)
 {
 	this->width = width;
@@ -129,6 +124,27 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 	pcl::removeNaNFromPointCloud(*cloud_input_p,*cloud_input_p, indices);
 	
 }
+
+void DEM::setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud)
+{
+	cloud_input_p->swap(input_cloud);
+	
+	Eigen::Matrix3d m;
+	
+	Eigen::Quaterniond attitude;
+	attitude = Eigen::Quaternion <double> (Eigen::AngleAxisd(3.14, Eigen::Vector3d::UnitZ())*
+							Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY()) *
+							Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX()));
+	Eigen::Translation<double,3> ptu2Bd(Eigen::Vector3d(0.0,0.0,0.0));
+	
+	Eigen::Transform<double,3,Eigen::Affine> combined = attitude*ptu2Bd;
+	
+	
+	pcl::transformPointCloud(*cloud_input_p, *cloud_input_p, combined);
+
+
+}
+
 
 void DEM::pointCloud2Mesh()
 {
