@@ -153,9 +153,12 @@ void DEM::setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud)
 	
 	
 	pcl::transformPointCloud(*cloud_input_p, *cloud_input_p, combined);
-
-
 }
+
+void DEM::setPointCloud(std::vector<Eigen::Vector3d>& input_cloud)
+{
+}
+
 
 
 void DEM::pointCloud2Mesh()
@@ -391,7 +394,7 @@ void DEM::saveDistanceFrame(std::vector<float> distance)
 	cv::imwrite(distance_frame_location, distance_frame);	
 }
 
-void DEM::savePointCloud()
+void DEM::savePointCloud(bool filtered)
 {
 	if(!timestamp_set)
 		std::cerr << "The timestamp has never been set!\n";  
@@ -399,7 +402,12 @@ void DEM::savePointCloud()
 	point_cloud_obj_location = default_save_location + camera_name + "_" + sensor_data_time + "_pc.obj";
 
     pcl::PolygonMesh mesh;
-    pcl::toPCLPointCloud2(*cloud_filtered_p, mesh.cloud);
+    
+    if(filtered)
+		pcl::toPCLPointCloud2(*cloud_filtered_p, mesh.cloud);
+    else
+		pcl::toPCLPointCloud2(*cloud_input_p, mesh.cloud);
+    
     pcl::io::saveOBJFile(point_cloud_obj_location, mesh);
 
 }

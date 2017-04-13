@@ -44,10 +44,11 @@ namespace dem_generation
             void setFileDestination(std::string default_save_location, std::string camera_name);
             void distance2pointCloud(std::vector<float> distance);
             void setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud);
+			void setPointCloud(std::vector<Eigen::Vector3d>& input_cloud);
             void pointCloud2Mesh();
             void mapTexture2MeshUVnew(pcl::TextureMesh &tex_mesh, pcl::TexMaterial &tex_material, std::vector<std::string> &tex_files);
             void saveDistanceFrame(std::vector<float> distance);
-			void savePointCloud();
+			void savePointCloud(bool filtered);
 			std::string getMeshPath();
             std::string getImageLeftPath();
             std::string getImageRightPath();
