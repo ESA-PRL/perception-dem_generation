@@ -12,6 +12,7 @@ DEM::DEM()
 	
 	camera_set = 0;
 	timestamp_set = 0;
+	filter_set = 0;
 
 	cloud_input_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
 	cloud_filtered_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
@@ -62,6 +63,16 @@ void DEM::setCameraParameters(int width, int height, float cx, float cy, float f
           
 	camera_set = 1;
 }
+
+void DEM::setPcFiltersParameters(Eigen::Vector4f filter_box_min, Eigen::Vector4f filter_box_max, float leaf_size, int k_points)
+{
+	filter_set = 1;
+	this->leaf_size = leaf_size;
+	this->k_points = k_points;
+	this->filter_box_min = filter_box_min;
+	this->filter_box_max = filter_box_max;
+}
+
 
 void DEM::setTimestamp(std::string timestamp)
 {
@@ -131,8 +142,9 @@ void DEM::setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud)
 	
 	Eigen::Matrix3d m;
 	
+	// pointcloud of tof needs to be flipped 180 around Z axis. At the moment this is a custom solution
 	Eigen::Quaterniond attitude;
-	attitude = Eigen::Quaternion <double> (Eigen::AngleAxisd(3.14, Eigen::Vector3d::UnitZ())*
+	attitude = Eigen::Quaternion <double> (Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())*
 							Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY()) *
 							Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX()));
 	Eigen::Translation<double,3> ptu2Bd(Eigen::Vector3d(0.0,0.0,0.0));
@@ -150,21 +162,14 @@ void DEM::pointCloud2Mesh()
 {
 	if(!timestamp_set)
 		std::cerr << "The timestamp has never been set!\n";  
+	
+	if(!filter_set)
+		std::cerr << "The pointcloud filter has never been set!\n";  
 		
-	Eigen::Vector4f	filter_box_min, filter_box_max;
-	
-	filter_box_min[0] = -4.0; 
-	filter_box_min[1] = -4.0; 
-	filter_box_min[2] = 0.5; 
-	
-	filter_box_max[0] = 4.0; 
-	filter_box_max[1] = 4.0; 
-	filter_box_max[2] = 4.0; 
-	
 	// Voxel grid
 	pcl::VoxelGrid<pcl::PointXYZ> sor;
 	sor.setInputCloud (cloud_input_p);					
-	sor.setLeafSize (0.05f, 0.05f, 0.05f);
+	sor.setLeafSize (leaf_size, leaf_size, leaf_size);
 	sor.filter (*cloud_filtered_p);				
 	
 	// remove out of bound points
@@ -179,7 +184,7 @@ void DEM::pointCloud2Mesh()
 	cb.filter(*cloud_filtered_p);
 	
 	sor.setInputCloud (cloud_filtered_p);					
-	sor.setLeafSize (0.05f, 0.05f, 0.05f);
+	sor.setLeafSize (leaf_size, leaf_size, leaf_size);
 	sor.filter (*cloud_filtered_p);	
 	
 	// Normal estimation*
@@ -189,7 +194,7 @@ void DEM::pointCloud2Mesh()
 	tree->setInputCloud (cloud_filtered_p);
 	n.setInputCloud (cloud_filtered_p);
 	n.setSearchMethod (tree);
-	n.setKSearch(20);
+	n.setKSearch(k_points);
 	n.compute (*normals);
 	
 	//* normals should not contain the point normals + surface curvatures

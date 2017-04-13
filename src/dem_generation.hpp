@@ -38,6 +38,7 @@ namespace dem_generation
  
 			DEM();
             void setCameraParameters(int width, int height, float cx, float cy, float fx, float fy);
+			void setPcFiltersParameters(Eigen::Vector4f	filter_box_min, Eigen::Vector4f filter_box_max, float leaf_size, int k_points);
             void setTimestamp(std::string sensor_data_time);
             void setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right);
             void setFileDestination(std::string default_save_location, std::string camera_name);
@@ -57,6 +58,7 @@ namespace dem_generation
 		
 			int camera_set;
 			int timestamp_set;
+			int filter_set;
 
 		
 			// camera parameters
@@ -81,6 +83,12 @@ namespace dem_generation
 					
 			// data capture time string
 			std::string sensor_data_time;
+			
+			// Point cloud filter parameters
+			Eigen::Vector4f	filter_box_min, filter_box_max;
+			float leaf_size;
+			int k_points;
+
     };
 
 } // end namespace dem_generation
