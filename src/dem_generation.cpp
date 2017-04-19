@@ -418,6 +418,11 @@ std::string DEM::getMeshPath()
 	return mesh_location;
 }
 
+std::string DEM::getPointCloudPath()
+{
+	return point_cloud_obj_location;
+}
+
 
 std::string DEM::getImageLeftPath()
 {

@@ -50,6 +50,7 @@ namespace dem_generation
             void saveDistanceFrame(std::vector<float> distance);
 			void savePointCloud(bool filtered);
 			std::string getMeshPath();
+			std::string getPointCloudPath();
             std::string getImageLeftPath();
             std::string getImageRightPath();
 			std::string getDistanceFramePath();
