@@ -89,7 +89,7 @@ void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
 		std::cerr << "The timestamp has never been set!\n";  	
 	
 	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
-	color_frame_location_left = default_save_location + camera_name + "_" + sensor_data_time + "_left.png";
+	color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".png";
 	cv::imwrite(color_frame_location_left, color_frame_left);
 	
 	if ((camera_name=="FLOC_STEREO") || (camera_name=="RLOC_STEREO"))
@@ -299,7 +299,7 @@ void DEM::pointCloud2Mesh()
     mapTexture2MeshUVnew(tex_mesh, tex_material, tex_files);
     
     // Save obj, view in meshlab.	
-    mesh_location = default_save_location + camera_name + "_" + sensor_data_time + ".obj";
+    mesh_location = default_save_location + "DEM_" + camera_name + "_" + sensor_data_time + ".obj";
     pcl::io::saveOBJFile (mesh_location, tex_mesh , 6); 
 }
 
@@ -390,7 +390,7 @@ void DEM::saveDistanceFrame(std::vector<float> distance)
 	
 	cv::Mat distance_frame(height, width, CV_8UC4, tmp.data);
 	
-	distance_frame_location = default_save_location + camera_name + "_" + sensor_data_time + "_distance.bmp";
+	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + sensor_data_time + ".bmp";
 	cv::imwrite(distance_frame_location, distance_frame);	
 }
 
@@ -399,7 +399,7 @@ void DEM::savePointCloud(bool filtered)
 	if(!timestamp_set)
 		std::cerr << "The timestamp has never been set!\n";  
 		
-	point_cloud_obj_location = default_save_location + camera_name + "_" + sensor_data_time + "_pc.obj";
+	point_cloud_obj_location = default_save_location + "PC_" +  camera_name + "_" + sensor_data_time + ".obj";
 
     pcl::PolygonMesh mesh;
     
