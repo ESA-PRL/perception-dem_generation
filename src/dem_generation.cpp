@@ -13,7 +13,9 @@ DEM::DEM()
 	camera_set = 0;
 	timestamp_set = 0;
 	filter_set = 0;
-
+	pc_set = 0;
+	pc_filtered = 0;
+	
 	cloud_input_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
 	cloud_filtered_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
 	
@@ -134,6 +136,8 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 	std::vector<int> indices;
 	pcl::removeNaNFromPointCloud(*cloud_input_p,*cloud_input_p, indices);
 	
+	pc_set = 1;
+	pc_filtered = 0;
 }
 
 void DEM::setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud)
@@ -153,21 +157,24 @@ void DEM::setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud)
 	
 	
 	pcl::transformPointCloud(*cloud_input_p, *cloud_input_p, combined);
+	
+	pc_set = 1;
+	pc_filtered = 0;
 }
 
 void DEM::setPointCloud(std::vector<Eigen::Vector3d>& input_cloud)
 {
+	// TODO??
+	pc_set = 1;
+	pc_filtered = 0;
 }
 
-
-
-void DEM::pointCloud2Mesh()
+void DEM::filterPointCloud()
 {
-	if(!timestamp_set)
-		std::cerr << "The timestamp has never been set!\n";  
-	
 	if(!filter_set)
 		std::cerr << "The pointcloud filter has never been set!\n";  
+	if(!pc_set)
+		std::cerr << "The pointcloud has never been set!\n"; 
 		
 	// Voxel grid
 	pcl::VoxelGrid<pcl::PointXYZ> sor;
@@ -189,22 +196,52 @@ void DEM::pointCloud2Mesh()
 	sor.setInputCloud (cloud_filtered_p);					
 	sor.setLeafSize (leaf_size, leaf_size, leaf_size);
 	sor.filter (*cloud_filtered_p);	
-	
+
+	pc_filtered = 1;
+}
+
+
+void DEM::pointCloud2Mesh(bool use_filtered)
+{
+	if(!timestamp_set)
+		std::cerr << "The timestamp has never been set!\n"; 
+		
+	if(!pc_set)
+		std::cerr << "The pointcloud has never been set!\n";  
+
 	// Normal estimation*
 	pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
 	pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
-	tree->setInputCloud (cloud_filtered_p);
-	n.setInputCloud (cloud_filtered_p);
+	if(pc_filtered && use_filtered)
+	{
+		tree->setInputCloud (cloud_filtered_p);
+		n.setInputCloud (cloud_filtered_p);
+	}
+	else if(!use_filtered)
+	{
+		tree->setInputCloud (cloud_input_p);
+		n.setInputCloud (cloud_input_p);
+	}
+	else
+		std::cerr << "You asked for a filtered PC to be put in a mesh but you forgot to call the filter!\n";
+		 	
 	n.setSearchMethod (tree);
 	n.setKSearch(k_points);
 	n.compute (*normals);
 	
-	//* normals should not contain the point normals + surface curvatures
+	// normals should not contain the point normals + surface curvatures
 	// Concatenate the XYZ and normal fields*
 	pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals (new pcl::PointCloud<pcl::PointNormal>);
-	pcl::concatenateFields (*cloud_filtered_p, *normals, *cloud_with_normals);
-	//* cloud_with_normals = cloud + normals
+	
+	if(pc_filtered && use_filtered)
+		pcl::concatenateFields (*cloud_filtered_p, *normals, *cloud_with_normals);
+	else if(!use_filtered)
+		pcl::concatenateFields (*cloud_input_p, *normals, *cloud_with_normals);
+	else
+		std::cerr << "You asked for a filtered PC to be put in a mesh but you forgot to call the filter!\n";
+		 
+	// cloud_with_normals = cloud + normals
 	//Flip all normals towards the viewer
 	for(unsigned int i=0; i<cloud_with_normals->width*cloud_with_normals->height; i++){
 		pcl::flipNormalTowardsViewpoint(cloud_with_normals->points[i], 0.0f, 0.0f, 0.0f, cloud_with_normals->points[i].normal_x, cloud_with_normals->points[i].normal_y, cloud_with_normals->points[i].normal_z);

@@ -45,7 +45,8 @@ namespace dem_generation
             void distance2pointCloud(std::vector<float> distance);
             void setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud);
 			void setPointCloud(std::vector<Eigen::Vector3d>& input_cloud);
-            void pointCloud2Mesh();
+			void filterPointCloud();
+            void pointCloud2Mesh(bool use_filtered);
             void mapTexture2MeshUVnew(pcl::TextureMesh &tex_mesh, pcl::TexMaterial &tex_material, std::vector<std::string> &tex_files);
             void saveDistanceFrame(std::vector<float> distance);
 			void savePointCloud(bool filtered);
@@ -61,7 +62,8 @@ namespace dem_generation
 			int camera_set;
 			int timestamp_set;
 			int filter_set;
-
+			int pc_set;
+			int pc_filtered;
 		
 			// camera parameters
 			float width;
