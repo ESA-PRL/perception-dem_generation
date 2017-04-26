@@ -276,20 +276,9 @@ void DEM::pointCloud2Mesh(bool use_filtered)
 
 	// test texture mapping
 	pcl::TextureMapping<pcl::PointXYZ> tm;
-	// read current camera
 
     std::vector<std::string> color_frame_location_vect; 
-    color_frame_location_vect.push_back(color_frame_location_left);  // TODO CLEAN UP
-
-	// IS ALL THIS USED??
-	pcl::texture_mapping::CameraVector cam_vector;
-	pcl::texture_mapping::Camera cam;
-	cam.pose = Eigen::Affine3f::Identity(); 
-	cam.focal_length = fx;
-	cam.height = height;
-	cam.width = width;
-	cam.texture_file = color_frame_location_left;				
-	cam_vector.push_back(cam);
+    color_frame_location_vect.push_back(color_frame_location_left); 
 
     pcl::TexMaterial tex_material;
 
@@ -326,16 +315,16 @@ void DEM::pointCloud2Mesh(bool use_filtered)
            
     std::vector<pcl::Vertices> polygon1;
 
-        for(size_t i =0; i < triangles.polygons.size(); ++i){
-                polygon1.push_back(triangles.polygons[i]);      
-        }
+	for(size_t i =0; i < triangles.polygons.size(); ++i){
+			polygon1.push_back(triangles.polygons[i]);      
+	}
 
     tex_mesh.tex_polygons.push_back(polygon1);
 	
 	// mapping
     mapTexture2MeshUVnew(tex_mesh, tex_material, tex_files);
     
-    // Save obj, view in meshlab.	
+    // Save mesh obj. Do we need 6 precision?
     mesh_location = default_save_location + "DEM_" + camera_name + "_" + sensor_data_time + ".obj";
     pcl::io::saveOBJFile (mesh_location, tex_mesh , 6); 
 }
@@ -343,40 +332,9 @@ void DEM::pointCloud2Mesh(bool use_filtered)
 
 void DEM::mapTexture2MeshUVnew (pcl::TextureMesh &tex_mesh, pcl::TexMaterial &tex_material, std::vector<std::string> &tex_files)
 {
-	// mesh information
 	int nr_points = tex_mesh.cloud.width * tex_mesh.cloud.height;
 	int point_size = static_cast<int> (tex_mesh.cloud.data.size ()) / nr_points;
-
-	float x_lowest = 100000;
-	float x_highest = 0;
-	float y_lowest = 100000;
-	//float y_highest = 0 ;
-	float z_lowest = 100000;
-	float z_highest = 0;
 	float x_, y_, z_;
-	for (int i = 0; i < nr_points; ++i)
-	{
-		memcpy (&x_, &tex_mesh.cloud.data[i * point_size + tex_mesh.cloud.fields[0].offset], sizeof(float));
-		memcpy (&y_, &tex_mesh.cloud.data[i * point_size + tex_mesh.cloud.fields[1].offset], sizeof(float));
-		memcpy (&z_, &tex_mesh.cloud.data[i * point_size + tex_mesh.cloud.fields[2].offset], sizeof(float));
-		// x
-		if (x_ <= x_lowest)
-		x_lowest = x_;
-		if (x_ > x_lowest)
-		x_highest = x_;
-		
-		// y
-		if (y_ <= y_lowest)
-		y_lowest = y_;
-		//if (y_ > y_lowest) y_highest = y_;
-		
-		// z
-		if (z_ <= z_lowest)
-		z_lowest = z_;
-		if (z_ > z_lowest)
-		z_highest = z_;
-	}
-	
 	
 	// texture coordinates for each mesh
 	std::vector<std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f> > >texture_map;
@@ -475,71 +433,3 @@ std::string DEM::getDistanceFramePath()
 {
 	return distance_frame_location;
 }
-
-	/*  const int rows_p= height*width;
-  const int cols_p= 3;
-  double **points = (double **) malloc(sizeof(double *)*rows_p);
-  for(int i=0; i<rows_p; i++){
-	// Allocate array, store pointer  
-	points[i] = (double *) malloc(sizeof(double)*cols_p); 
-  }  
-
-  cloud_input_p->width    = width;
-  cloud_input_p->height   = height;
-  cloud_input_p->is_dense = false;
-  cloud_input_p->points.resize (width*height);
-
-	// std::numeric_limits<float>::quiet_NaN()
-	std::cout << "check2" << std::endl;
-
-  
-  int valid_points=0;
-
-  int idxi=0; int idxj=-1; int idx=-1;
-  const float bad_point = std::numeric_limits<float>::quiet_NaN();
-
- 
-
-
-  
-  for(int opp = 0; opp < width*height; opp++)
-  {
-	idxj++; idx++;
-	if (idxj>width-1){
-		idxj=0;idxi++;
-	}
-	//line.erase (0,2);
-//std::cout << "line: " << line << " idx: " << idx << std::endl;
-
-	if (1==0)//line.compare("nan") == 0)
-	{
-		points[idx][0]=idxi;
-		points[idx][1]=idxj;
-		points[idx][2]=0;
-		//std::cout << "no!!!!!!" << idx << std::endl;
-		//valid_points++;
-		//cloud->points[valid_points].z= bad_point;
-		//cloud->points[valid_points].x= bad_point;
-		//cloud->points[valid_points].y= bad_point;
-
-	}else{
-		
-		//cout<< "ei" << endl;
-		valid_points++;
-        	points[idx][0]=idxi;
-		points[idx][1]=idxj;
-		points[idx][2]=distance[opp];
-
-
-        	cloud_input_p->points[valid_points].z= points[idx][2];
-		cloud_input_p->points[valid_points].x= cloud_input_p->points[valid_points].z * (points[idx][1]+ 1 - cx)/ fx;
-		cloud_input_p->points[valid_points].y= cloud_input_p->points[valid_points].z * (points[idx][0]+ 1 - cy)/ fy;
-		//float tmp = cloud->points[valid_points].z;
-		//cloud->points[valid_points].x= cloud->points[valid_points].y;
-		//cloud->points[valid_points].z = cloud->points[valid_points].y;
-        	//cloud->points[valid_points].y = tmp; 
-		
-
-	}
-	
-  }*/
