@@ -42,6 +42,7 @@ namespace dem_generation
             void setTimestamp(std::string sensor_data_time);
             void setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right);
             void setFileDestination(std::string default_save_location, std::string camera_name);
+			void compressProducts(bool enable_compression, int compression_level);
             void distance2pointCloud(std::vector<float> distance);
             void setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud);
 			void setPointCloud(std::vector<Eigen::Vector3d>& input_cloud);
@@ -64,6 +65,8 @@ namespace dem_generation
 			int filter_set;
 			int pc_set;
 			int pc_filtered;
+			bool compression_enabled;
+			int compression_level;
 		
 			// camera parameters
 			float width;

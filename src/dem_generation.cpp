@@ -15,6 +15,7 @@ DEM::DEM()
 	filter_set = 0;
 	pc_set = 0;
 	pc_filtered = 0;
+	compression_enabled = 0;
 	
 	cloud_input_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
 	cloud_filtered_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
@@ -91,13 +92,18 @@ void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
 		std::cerr << "The timestamp has never been set!\n";  	
 	
 	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
-	color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".png";
-	cv::imwrite(color_frame_location_left, color_frame_left);
-	
-	if ((camera_name=="FLOC_STEREO") || (camera_name=="RLOC_STEREO"))
+	if(compression_enabled)
+	{	
+		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".png";
+		vector<int> compression_params;
+		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+		compression_params.push_back(compression_level);
+		cv::imwrite(color_frame_location_left, color_frame_left, compression_params);
+	}
+	else
 	{
-		color_frame_location_right = default_save_location + camera_name + "_" + sensor_data_time + "_right.png";
-		cv::imwrite(color_frame_location_right, color_frame_right);
+		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".jpg";
+		cv::imwrite(color_frame_location_left, color_frame_left);
 	}
 }
 
@@ -167,6 +173,16 @@ void DEM::setPointCloud(std::vector<Eigen::Vector3d>& input_cloud)
 	// TODO??
 	pc_set = 1;
 	pc_filtered = 0;
+}
+
+void DEM::compressProducts(bool enable_compression, int compression_level)
+{
+	compression_enabled = enable_compression;
+	this->compression_level = compression_level;
+	if(this->compression_level > 100)
+		this->compression_level = 100;
+	if(this->compression_level < 0)
+		this->compression_level = 0;
 }
 
 void DEM::filterPointCloud()
