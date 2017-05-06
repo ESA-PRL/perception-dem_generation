@@ -196,8 +196,8 @@ void DEM::filterPointCloud()
 	pcl::VoxelGrid<pcl::PointXYZ> sor;
 	sor.setInputCloud (cloud_input_p);					
 	sor.setLeafSize (leaf_size, leaf_size, leaf_size);
-	sor.filter (*cloud_filtered_p);				
-	
+	sor.filter (*cloud_filtered_p);		
+		
 	// remove out of bound points
 	// ATTENTION, if this is performed before the voxel filter,
 	// then there will be degenerate faces in the mesh (dont know why)
@@ -209,9 +209,10 @@ void DEM::filterPointCloud()
 	cb.setMax(filter_box_max);
 	cb.filter(*cloud_filtered_p);
 	
-	sor.setInputCloud (cloud_filtered_p);					
-	sor.setLeafSize (leaf_size, leaf_size, leaf_size);
-	sor.filter (*cloud_filtered_p);	
+	pcl::VoxelGrid<pcl::PointXYZ> sor2;
+	sor2.setInputCloud (cloud_filtered_p);					
+	sor2.setLeafSize (leaf_size, leaf_size, leaf_size);
+	sor2.filter (*cloud_filtered_p);	
 
 	pc_filtered = 1;
 }
