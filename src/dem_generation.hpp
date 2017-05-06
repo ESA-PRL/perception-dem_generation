@@ -47,7 +47,7 @@ namespace dem_generation
             void setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud);
 			void setPointCloud(std::vector<Eigen::Vector3d>& input_cloud);
 			void filterPointCloud();
-            void pointCloud2Mesh(bool use_filtered);
+            int pointCloud2Mesh(bool use_filtered);
             void mapTexture2MeshUVnew(pcl::TextureMesh &tex_mesh, pcl::TexMaterial &tex_material, std::vector<std::string> &tex_files);
             void saveDistanceFrame(std::vector<float> distance);
 			void savePointCloud(bool filtered);

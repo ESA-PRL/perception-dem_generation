@@ -217,7 +217,7 @@ void DEM::filterPointCloud()
 }
 
 
-void DEM::pointCloud2Mesh(bool use_filtered)
+int DEM::pointCloud2Mesh(bool use_filtered)
 {
 	if(!timestamp_set)
 		std::cerr << "The timestamp has never been set!\n"; 
@@ -231,11 +231,21 @@ void DEM::pointCloud2Mesh(bool use_filtered)
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
 	if(pc_filtered && use_filtered)
 	{
+		if(cloud_filtered_p->size()<50)
+		{
+			std::cout << "Not enough points to generate DEM" << std::endl;
+			return -1;
+		}
 		tree->setInputCloud (cloud_filtered_p);
 		n.setInputCloud (cloud_filtered_p);
 	}
 	else if(!use_filtered)
 	{
+		if(cloud_input_p->size()<50)
+		{
+			std::cout << "Not enough points to generate DEM" << std::endl;
+			return -1;
+		}
 		tree->setInputCloud (cloud_input_p);
 		n.setInputCloud (cloud_input_p);
 	}
@@ -350,6 +360,8 @@ void DEM::pointCloud2Mesh(bool use_filtered)
         system(command.c_str());
 		mesh_location = mesh_location + ".gz";
 	}
+	
+	return 0;
 }
 
 
