@@ -191,28 +191,19 @@ void DEM::filterPointCloud()
 		std::cerr << "The pointcloud filter has never been set!\n";  
 	if(!pc_set)
 		std::cerr << "The pointcloud has never been set!\n"; 
-		
-	// Voxel grid
-	pcl::VoxelGrid<pcl::PointXYZ> sor;
-	sor.setInputCloud (cloud_input_p);					
-	sor.setLeafSize (leaf_size, leaf_size, leaf_size);
-	sor.filter (*cloud_filtered_p);		
-		
-	// remove out of bound points
-	// ATTENTION, if this is performed before the voxel filter,
-	// then there will be degenerate faces in the mesh (dont know why)
-	// but the first voxel grid may fail because there are too
-	// many points, so it has to be executed again after the crop box
+	
+	// Crop Box filter
 	pcl::CropBox<pcl::PointXYZ> cb;
-	cb.setInputCloud(cloud_filtered_p);
+	cb.setInputCloud(cloud_input_p);
 	cb.setMin(filter_box_min);
 	cb.setMax(filter_box_max);
 	cb.filter(*cloud_filtered_p);
 	
-	pcl::VoxelGrid<pcl::PointXYZ> sor2;
-	sor2.setInputCloud (cloud_filtered_p);					
-	sor2.setLeafSize (leaf_size, leaf_size, leaf_size);
-	sor2.filter (*cloud_filtered_p);	
+	// Voxel grid filter
+	pcl::VoxelGrid<pcl::PointXYZ> sor;
+	sor.setInputCloud (cloud_filtered_p);					
+	sor.setLeafSize (leaf_size, leaf_size, leaf_size);
+	sor.filter (*cloud_filtered_p);	
 
 	pc_filtered = 1;
 }
@@ -295,6 +286,23 @@ int DEM::pointCloud2Mesh(bool use_filtered)
 	gp3.setSearchMethod (tree2);
 	gp3.reconstruct (triangles);
 
+	// remove possible degenerate faces
+	// ATTENTION assumes that faces are all triangles
+	int count_degen = 0;
+	for(int i=triangles.polygons.size()-1; i>= 0; i--)
+	{
+		// face is degenerate
+		if(triangles.polygons[i].vertices[0] == triangles.polygons[i].vertices[1] ||
+			triangles.polygons[i].vertices[0] == triangles.polygons[i].vertices[2] ||
+			triangles.polygons[i].vertices[1] == triangles.polygons[i].vertices[2])
+		{
+				count_degen++;
+				triangles.polygons.erase(triangles.polygons.begin()+i);
+		}
+	}
+	std::cout << "removed " << count_degen << " degenerated faces\n";
+
+	
 	// Additional vertex information
 	std::vector<int> parts = gp3.getPartIDs();
 	std::vector<int> states = gp3.getPointStates();
