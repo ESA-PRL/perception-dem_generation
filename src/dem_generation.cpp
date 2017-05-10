@@ -94,7 +94,7 @@ void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
 	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
 	if(compression_enabled)
 	{	
-		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".jpg";
+		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".png"; // still save with PNG extension for 3DROCS compatibility
 		vector<int> compression_params;
 		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
 		compression_params.push_back(compression_level);
@@ -432,11 +432,11 @@ void DEM::saveDistanceFrame(std::vector<float> distance)
 	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + sensor_data_time + ".bmp";
 	cv::imwrite(distance_frame_location, distance_frame);	
 	
-	if(compression_enabled)
+	if(compression_enabled && false) // for compatibility with 3DROCS
     {
 		std::string command("gzip " + distance_frame_location);;
         system(command.c_str());
-		mesh_location = distance_frame_location + ".gz";
+		distance_frame_location = distance_frame_location + ".gz";
 	}
 }
 
@@ -460,7 +460,7 @@ void DEM::savePointCloud(bool filtered)
     {
 		std::string command("gzip " + point_cloud_obj_location);;
         system(command.c_str());
-		mesh_location = point_cloud_obj_location + ".gz";
+		point_cloud_obj_location = point_cloud_obj_location + ".gz";
 	}
 }
 
