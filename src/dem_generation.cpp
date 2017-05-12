@@ -433,7 +433,7 @@ void DEM::saveDistanceFrame(std::vector<float> distance)
 	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + sensor_data_time + ".bmp";
 	cv::imwrite(distance_frame_location, distance_frame);	
 	
-	if(compression_enabled && false) // for compatibility with 3DROCS
+	if(compression_enabled)
     {
 		std::string command("gzip " + distance_frame_location);;
         system(command.c_str());
