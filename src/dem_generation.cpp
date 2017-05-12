@@ -94,9 +94,10 @@ void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
 	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
 	if(compression_enabled)
 	{	
-		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".png"; // still save with PNG extension for 3DROCS compatibility
+		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".jpg"; // still save with PNG extension for 3DROCS compatibility
 		vector<int> compression_params;
-		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+		compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+//		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
 		compression_params.push_back(compression_level);
 		cv::imwrite(color_frame_location_left, color_frame_left, compression_params);
 	}
@@ -149,9 +150,9 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 void DEM::setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud)
 {
 	cloud_input_p->swap(input_cloud);
-	
+	cloud_input_p->resize(input_cloud.size()); // when saving unfiltered, handles the possibility the size of the pointclous is changing
+
 	Eigen::Matrix3d m;
-	
 	// pointcloud of tof needs to be flipped 180 around Z axis. At the moment this is a custom solution
 	Eigen::Quaterniond attitude;
 	attitude = Eigen::Quaternion <double> (Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())*
