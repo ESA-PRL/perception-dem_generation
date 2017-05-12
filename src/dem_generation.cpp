@@ -362,7 +362,7 @@ int DEM::pointCloud2Mesh(bool use_filtered)
     
     // Save mesh obj. Do we need 6 precision?
     mesh_location = default_save_location + "DEM_" + camera_name + "_" + sensor_data_time + ".obj";
-    pcl::io::saveOBJFile (mesh_location, tex_mesh , 6); 
+    pcl::io::saveOBJFile (mesh_location, tex_mesh , 3); 
     
     if(compression_enabled)
     {
@@ -425,14 +425,14 @@ void DEM::saveDistanceFrame(std::vector<float> distance)
 {
 	if(!timestamp_set)
 		std::cerr << "The timestamp has never been set!\n";  
-		
+
 	cv::Mat tmp = cv::Mat(distance).reshape(0,height);
-	
-	cv::Mat distance_frame(height, width, CV_8UC4, tmp.data);
-	
-	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + sensor_data_time + ".bmp";
-	cv::imwrite(distance_frame_location, distance_frame);	
-	
+	tmp=tmp.mul(1000); //  go to mm distance
+	tmp.convertTo(tmp,CV_16U); // save in uint16
+
+	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + sensor_data_time + ".png";
+	cv::imwrite(distance_frame_location, tmp);
+
 	if(compression_enabled)
     {
 		std::string command("gzip " + distance_frame_location);;
