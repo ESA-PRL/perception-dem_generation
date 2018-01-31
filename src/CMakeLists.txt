@@ -11,6 +11,10 @@ rock_library(dem_generation
 rock_executable(dem_generation_bin Main.cpp
     DEPS dem_generation)
 
+if(NOT "${PCL_LIBRARIES}" STREQUAL "")
+  list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
+endif()
+
 target_link_libraries(dem_generation
   ${PCL_LIBRARIES}
   opencv_core)
