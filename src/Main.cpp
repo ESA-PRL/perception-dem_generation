@@ -4,7 +4,6 @@
 int main(int argc, char** argv)
 {
     dem_generation::DEM dummyClass;
-    dummyClass.welcome();
 
     return 0;
 }

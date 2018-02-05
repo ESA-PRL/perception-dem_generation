@@ -11,17 +11,17 @@ DEM::DEM()
 {
 	
 	camera_set = 0;
-
-	cloud_input_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
+	timestamp_set = 0;
+	filter_set = 0;
+	pc_set = 0;
+	pc_filtered = 0;
+	compression_enabled = 0;
+	
+    cloud_input_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
 	cloud_filtered_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
 
-        processing_count=1;
+        //processing_count=1;
 	
-}
-
-void DEM::welcome()
-{
-    cout << "You successfully compiled and executed DummyProject. Welcome!" << endl;
 }
 
 void DEM::setCameraParameters(int width, int height, float cx, float cy, float fx, float fy)
@@ -69,22 +69,43 @@ void DEM::setCameraParameters(int width, int height, float cx, float cy, float f
 	camera_set = 1;
 }
 
+void DEM::setPcFiltersParameters(Eigen::Vector4f filter_box_min, Eigen::Vector4f filter_box_max, float leaf_size, int k_points)
+{
+	filter_set = 1;
+	this->leaf_size = leaf_size;
+	this->k_points = k_points;
+	this->filter_box_min = filter_box_min;
+	this->filter_box_max = filter_box_max;
+}
+
+
+void DEM::setTimestamp(std::string timestamp)
+{
+	// save timestamp
+	timestamp.erase(std::remove(timestamp.begin(),timestamp.end(), ':' ), timestamp.end() ) ;
+	sensor_data_time = timestamp;
+	
+	timestamp_set = 1;
+}
 
 void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
 {	
 
 	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
-	std::stringstream ss;
-	std::string count;
-	ss << processing_count;
-	count = ss.str();
-	color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + count + ".png";
-	cv::imwrite(color_frame_location_left, color_frame_left);
-        if ((camera_name=="FLOC") || (camera_name=="RLOC"))
-        {
-            color_frame_location_right = default_save_location + "IMAGE_" + camera_name + "_" + count + "_right.png";
-            cv::imwrite(color_frame_location_right, color_frame_right);
-        }
+	if(compression_enabled)
+	{	
+		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".jpg"; // still save with PNG extension for 3DROCS compatibility
+		vector<int> compression_params;
+		compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+//		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+		compression_params.push_back(compression_level);
+		cv::imwrite(color_frame_location_left, color_frame_left, compression_params);
+	}
+	else
+	{
+		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".png";
+		cv::imwrite(color_frame_location_left, color_frame_left);
+	}
 }
 
 void DEM::setFileDestination(std::string default_save_location, std::string camera_name)
@@ -122,57 +143,124 @@ void DEM::distance2pointCloud(std::vector<float> distance)
 	std::vector<int> indices;
 	pcl::removeNaNFromPointCloud(*cloud_input_p,*cloud_input_p, indices);
 	
+	pc_set = 1;
+	pc_filtered = 0;
 }
 
-void DEM::pointCloud2Mesh()
+void DEM::setPointCloud(pcl::PointCloud<pcl::PointXYZ>& input_cloud)
 {
+	cloud_input_p->swap(input_cloud);
+	cloud_input_p->resize(input_cloud.size()); // when saving unfiltered, handles the possibility the size of the pointclous is changing
+
+	Eigen::Matrix3d m;
+	// pointcloud of tof needs to be flipped 180 around Z axis. At the moment this is a custom solution
+	Eigen::Quaterniond attitude;
+	attitude = Eigen::Quaternion <double> (Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())*
+							Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY()) *
+							Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitX()));
+	Eigen::Translation<double,3> ptu2Bd(Eigen::Vector3d(0.0,0.0,0.0));
 	
-	Eigen::Vector4f	filter_box_min, filter_box_max;
+	Eigen::Transform<double,3,Eigen::Affine> combined = attitude*ptu2Bd;
 	
-	filter_box_min[0] = -4.0; 
-	filter_box_min[1] = -4.0; 
-	filter_box_min[2] = 0.5; 
 	
-	filter_box_max[0] = 4.0; 
-	filter_box_max[1] = 4.0; 
-	filter_box_max[2] = 4.0; 
+	pcl::transformPointCloud(*cloud_input_p, *cloud_input_p, combined);
 	
-	// Voxel grid
-	pcl::VoxelGrid<pcl::PointXYZ> sor;
-	sor.setInputCloud (cloud_input_p);					
-	sor.setLeafSize (0.05f, 0.05f, 0.05f);
-	sor.filter (*cloud_filtered_p);				
+	pc_set = 1;
+	pc_filtered = 0;
+}
+
+void DEM::setPointCloud(std::vector<Eigen::Vector3d>& input_cloud)
+{
+	// TODO??
+	pc_set = 1;
+	pc_filtered = 0;
+}
+
+void DEM::compressProducts(bool enable_compression, int compression_level)
+{
+	compression_enabled = enable_compression;
+	this->compression_level = compression_level;
+	if(this->compression_level > 100)
+		this->compression_level = 100;
+	if(this->compression_level < 0)
+		this->compression_level = 0;
+}
+
+void DEM::filterPointCloud()
+{
+	if(!filter_set)
+		std::cerr << "The pointcloud filter has never been set!\n";  
+	if(!pc_set)
+		std::cerr << "The pointcloud has never been set!\n"; 
 	
-	// remove out of bound points
-	// ATTENTION, if this is performed before the voxel filter,
-	// then there will be degenerate faces in the mesh (dont know why)
-	// but the first voxel grid may fail because there are too
-	// many points, so it has to be executed again after the crop box
+	// Crop Box filter
 	pcl::CropBox<pcl::PointXYZ> cb;
-	cb.setInputCloud(cloud_filtered_p);
+	cb.setInputCloud(cloud_input_p);
 	cb.setMin(filter_box_min);
 	cb.setMax(filter_box_max);
 	cb.filter(*cloud_filtered_p);
 	
+	// Voxel grid filter
+	pcl::VoxelGrid<pcl::PointXYZ> sor;
 	sor.setInputCloud (cloud_filtered_p);					
-	sor.setLeafSize (0.05f, 0.05f, 0.05f);
+	sor.setLeafSize (leaf_size, leaf_size, leaf_size);
 	sor.filter (*cloud_filtered_p);	
-	
+
+	pc_filtered = 1;
+}
+
+
+int DEM::pointCloud2Mesh(bool use_filtered)
+{
+	if(!timestamp_set)
+		std::cerr << "The timestamp has never been set!\n"; 
+		
+	if(!pc_set)
+		std::cerr << "The pointcloud has never been set!\n";  
+
 	// Normal estimation*
 	pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
 	pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
-	tree->setInputCloud (cloud_filtered_p);
-	n.setInputCloud (cloud_filtered_p);
+	if(pc_filtered && use_filtered)
+	{
+		if(cloud_filtered_p->size()<50)
+		{
+			std::cout << "Not enough points to generate DEM" << std::endl;
+			return -1;
+		}
+		tree->setInputCloud (cloud_filtered_p);
+		n.setInputCloud (cloud_filtered_p);
+	}
+	else if(!use_filtered)
+	{
+		if(cloud_input_p->size()<50)
+		{
+			std::cout << "Not enough points to generate DEM" << std::endl;
+			return -1;
+		}
+		tree->setInputCloud (cloud_input_p);
+		n.setInputCloud (cloud_input_p);
+	}
+	else
+		std::cerr << "You asked for a filtered PC to be put in a mesh but you forgot to call the filter!\n";
+		 	
 	n.setSearchMethod (tree);
-	n.setKSearch(20);
+	n.setKSearch(k_points);
 	n.compute (*normals);
 	
-	//* normals should not contain the point normals + surface curvatures
+	// normals should not contain the point normals + surface curvatures
 	// Concatenate the XYZ and normal fields*
 	pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals (new pcl::PointCloud<pcl::PointNormal>);
-	pcl::concatenateFields (*cloud_filtered_p, *normals, *cloud_with_normals);
-	//* cloud_with_normals = cloud + normals
+	
+	if(pc_filtered && use_filtered)
+		pcl::concatenateFields (*cloud_filtered_p, *normals, *cloud_with_normals);
+	else if(!use_filtered)
+		pcl::concatenateFields (*cloud_input_p, *normals, *cloud_with_normals);
+	else
+		std::cerr << "You asked for a filtered PC to be put in a mesh but you forgot to call the filter!\n";
+		 
+	// cloud_with_normals = cloud + normals
 	//Flip all normals towards the viewer
 	for(unsigned int i=0; i<cloud_with_normals->width*cloud_with_normals->height; i++){
 		pcl::flipNormalTowardsViewpoint(cloud_with_normals->points[i], 0.0f, 0.0f, 0.0f, cloud_with_normals->points[i].normal_x, cloud_with_normals->points[i].normal_y, cloud_with_normals->points[i].normal_z);
@@ -199,6 +287,23 @@ void DEM::pointCloud2Mesh()
 	gp3.setSearchMethod (tree2);
 	gp3.reconstruct (triangles);
 
+	// remove possible degenerate faces
+	// ATTENTION assumes that faces are all triangles
+	int count_degen = 0;
+	for(int i=triangles.polygons.size()-1; i>= 0; i--)
+	{
+		// face is degenerate
+		if(triangles.polygons[i].vertices[0] == triangles.polygons[i].vertices[1] ||
+			triangles.polygons[i].vertices[0] == triangles.polygons[i].vertices[2] ||
+			triangles.polygons[i].vertices[1] == triangles.polygons[i].vertices[2])
+		{
+				count_degen++;
+				triangles.polygons.erase(triangles.polygons.begin()+i);
+		}
+	}
+	std::cout << "removed " << count_degen << " degenerated faces\n";
+
+	
 	// Additional vertex information
 	std::vector<int> parts = gp3.getPartIDs();
 	std::vector<int> states = gp3.getPointStates();
@@ -207,20 +312,9 @@ void DEM::pointCloud2Mesh()
 
 	// test texture mapping
 	pcl::TextureMapping<pcl::PointXYZ> tm;
-	// read current camera
 
     std::vector<std::string> color_frame_location_vect; 
-    color_frame_location_vect.push_back(color_frame_location_left);  // TODO CLEAN UP
-
-	// IS ALL THIS USED??
-	pcl::texture_mapping::CameraVector cam_vector;
-	pcl::texture_mapping::Camera cam;
-	cam.pose = Eigen::Affine3f::Identity(); 
-	cam.focal_length = fx;
-	cam.height = height;
-	cam.width = width;
-	cam.texture_file = color_frame_location_left;				
-	cam_vector.push_back(cam);
+    color_frame_location_vect.push_back(color_frame_location_left); 
 
     pcl::TexMaterial tex_material;
 
@@ -257,64 +351,35 @@ void DEM::pointCloud2Mesh()
            
     std::vector<pcl::Vertices> polygon1;
 
-        for(size_t i =0; i < triangles.polygons.size(); ++i){
-                polygon1.push_back(triangles.polygons[i]);      
-        }
+	for(size_t i =0; i < triangles.polygons.size(); ++i){
+			polygon1.push_back(triangles.polygons[i]);      
+	}
 
     tex_mesh.tex_polygons.push_back(polygon1);
 	
 	// mapping
     mapTexture2MeshUVnew(tex_mesh, tex_material, tex_files);
     
-    // Save obj, view in meshlab.
-    std::stringstream ss;
-    std::string count;
-    ss << processing_count;
-    count = ss.str();
+    // Save mesh obj. Do we need 6 precision?
+    mesh_location = default_save_location + "DEM_" + camera_name + "_" + sensor_data_time + ".obj";
+    pcl::io::saveOBJFile (mesh_location, tex_mesh , 3); 
+    
+    if(compression_enabled)
+    {
+		std::string command("gzip " + mesh_location);;
+        system(command.c_str());
+		mesh_location = mesh_location + ".gz";
+	}
 	
-    mesh_location = default_save_location + "DEM_" + camera_name + "_" + count + ".obj";
-    pcl::io::saveOBJFile (mesh_location, tex_mesh , 6);
-
-    processing_count++;
+	return 0;
 }
 
 
 void DEM::mapTexture2MeshUVnew (pcl::TextureMesh &tex_mesh, pcl::TexMaterial &tex_material, std::vector<std::string> &tex_files)
 {
-	// mesh information
 	int nr_points = tex_mesh.cloud.width * tex_mesh.cloud.height;
 	int point_size = static_cast<int> (tex_mesh.cloud.data.size ()) / nr_points;
-
-	float x_lowest = 100000;
-	float x_highest = 0;
-	float y_lowest = 100000;
-	//float y_highest = 0 ;
-	float z_lowest = 100000;
-	float z_highest = 0;
 	float x_, y_, z_;
-	for (int i = 0; i < nr_points; ++i)
-	{
-		memcpy (&x_, &tex_mesh.cloud.data[i * point_size + tex_mesh.cloud.fields[0].offset], sizeof(float));
-		memcpy (&y_, &tex_mesh.cloud.data[i * point_size + tex_mesh.cloud.fields[1].offset], sizeof(float));
-		memcpy (&z_, &tex_mesh.cloud.data[i * point_size + tex_mesh.cloud.fields[2].offset], sizeof(float));
-		// x
-		if (x_ <= x_lowest)
-		x_lowest = x_;
-		if (x_ > x_lowest)
-		x_highest = x_;
-		
-		// y
-		if (y_ <= y_lowest)
-		y_lowest = y_;
-		//if (y_ > y_lowest) y_highest = y_;
-		
-		// z
-		if (z_ <= z_lowest)
-		z_lowest = z_;
-		if (z_ > z_lowest)
-		z_highest = z_;
-	}
-	
 	
 	// texture coordinates for each mesh
 	std::vector<std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f> > >texture_map;
@@ -358,38 +423,57 @@ void DEM::mapTexture2MeshUVnew (pcl::TextureMesh &tex_mesh, pcl::TexMaterial &te
 
 void DEM::saveDistanceFrame(std::vector<float> distance)
 {
-	
-	cv::Mat tmp = cv::Mat(distance).reshape(0,height);
-	
-	cv::Mat distance_frame(height, width, CV_8UC4, tmp.data);
-	std::stringstream ss;
-        std::string count;
-        ss << processing_count;
-        count = ss.str();
+	if(!timestamp_set)
+		std::cerr << "The timestamp has never been set!\n";  
 
-	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + count + ".bmp";
-	cv::imwrite(distance_frame_location, distance_frame);	
+	cv::Mat tmp = cv::Mat(distance).reshape(0,height);
+	tmp=tmp.mul(1000); //  go to mm distance
+	tmp.convertTo(tmp,CV_16U); // save in uint16
+
+	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + sensor_data_time + ".png";
+	cv::imwrite(distance_frame_location, tmp);
+
+	if(compression_enabled)
+    {
+		std::string command("gzip " + distance_frame_location);;
+        system(command.c_str());
+		distance_frame_location = distance_frame_location + ".gz";
+	}
 }
 
-void DEM::savePointCloud()
+void DEM::savePointCloud(bool filtered)
 {
-
-    std::stringstream ss;
-    std::string count;
-    ss << processing_count;
-    count = ss.str();
-    point_cloud_obj_location = default_save_location + camera_name + "_" + count + "_pc.obj";
+	if(!timestamp_set)
+		std::cerr << "The timestamp has never been set!\n";  
+		
+	point_cloud_obj_location = default_save_location + "PC_" +  camera_name + "_" + sensor_data_time + ".obj";
 
     pcl::PolygonMesh mesh;
-    pcl::toPCLPointCloud2(*cloud_filtered_p, mesh.cloud);
+    
+    if(filtered)
+		pcl::toPCLPointCloud2(*cloud_filtered_p, mesh.cloud);
+    else
+		pcl::toPCLPointCloud2(*cloud_input_p, mesh.cloud);
+    
     pcl::io::saveOBJFile(point_cloud_obj_location, mesh);
 
+	if(compression_enabled)
+    {
+		std::string command("gzip " + point_cloud_obj_location);;
+        system(command.c_str());
+		point_cloud_obj_location = point_cloud_obj_location + ".gz";
+	}
 }
 
 
 std::string DEM::getMeshPath()
 {
 	return mesh_location;
+}
+
+std::string DEM::getPointCloudPath()
+{
+	return point_cloud_obj_location;
 }
 
 
@@ -407,71 +491,3 @@ std::string DEM::getDistanceFramePath()
 {
 	return distance_frame_location;
 }
-
-	/*  const int rows_p= height*width;
-  const int cols_p= 3;
-  double **points = (double **) malloc(sizeof(double *)*rows_p);
-  for(int i=0; i<rows_p; i++){
-	// Allocate array, store pointer  
-	points[i] = (double *) malloc(sizeof(double)*cols_p); 
-  }  
-
-  cloud_input_p->width    = width;
-  cloud_input_p->height   = height;
-  cloud_input_p->is_dense = false;
-  cloud_input_p->points.resize (width*height);
-
-	// std::numeric_limits<float>::quiet_NaN()
-	std::cout << "check2" << std::endl;
-
-  
-  int valid_points=0;
-
-  int idxi=0; int idxj=-1; int idx=-1;
-  const float bad_point = std::numeric_limits<float>::quiet_NaN();
-
- 
-
-
-  
-  for(int opp = 0; opp < width*height; opp++)
-  {
-	idxj++; idx++;
-	if (idxj>width-1){
-		idxj=0;idxi++;
-	}
-	//line.erase (0,2);
-//std::cout << "line: " << line << " idx: " << idx << std::endl;
-
-	if (1==0)//line.compare("nan") == 0)
-	{
-		points[idx][0]=idxi;
-		points[idx][1]=idxj;
-		points[idx][2]=0;
-		//std::cout << "no!!!!!!" << idx << std::endl;
-		//valid_points++;
-		//cloud->points[valid_points].z= bad_point;
-		//cloud->points[valid_points].x= bad_point;
-		//cloud->points[valid_points].y= bad_point;
-
-	}else{
-		
-		//cout<< "ei" << endl;
-		valid_points++;
-        	points[idx][0]=idxi;
-		points[idx][1]=idxj;
-		points[idx][2]=distance[opp];
-
-
-        	cloud_input_p->points[valid_points].z= points[idx][2];
-		cloud_input_p->points[valid_points].x= cloud_input_p->points[valid_points].z * (points[idx][1]+ 1 - cx)/ fx;
-		cloud_input_p->points[valid_points].y= cloud_input_p->points[valid_points].z * (points[idx][0]+ 1 - cy)/ fy;
-		//float tmp = cloud->points[valid_points].z;
-		//cloud->points[valid_points].x= cloud->points[valid_points].y;
-		//cloud->points[valid_points].z = cloud->points[valid_points].y;
-        	//cloud->points[valid_points].y = tmp; 
-		
-
-	}
-	
-  }*/
