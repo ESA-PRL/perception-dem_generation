@@ -40,7 +40,8 @@ namespace dem_generation
             void setCameraParameters(int width, int height, float cx, float cy, float fx, float fy);
 			void setPcFiltersParameters(Eigen::Vector4f	filter_box_min, Eigen::Vector4f filter_box_max, float leaf_size, int k_points);
             void setTimestamp(std::string sensor_data_time);
-            void setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right);
+            void setColorFrame(cv::Mat color_frame);
+            void setColorFrameStereo(cv::Mat color_frame_left, cv::Mat color_frame_right);
             void setFileDestination(std::string default_save_location, std::string camera_name);
 			void compressProducts(bool enable_compression, int compression_level);
             void distance2pointCloud(std::vector<float> distance);
@@ -96,6 +97,7 @@ namespace dem_generation
 			Eigen::Vector4f	filter_box_min, filter_box_max;
 			float leaf_size;
 			int k_points;
+            std::string constructProductPath(std::string, std::string);
 
     };
 

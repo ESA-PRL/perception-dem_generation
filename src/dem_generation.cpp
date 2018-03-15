@@ -88,23 +88,51 @@ void DEM::setTimestamp(std::string timestamp)
 	timestamp_set = 1;
 }
 
-void DEM::setColorFrame(cv::Mat color_frame_left, cv::Mat color_frame_right)
+void DEM::setColorFrame(cv::Mat color_frame)
 {	
-
 	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
 	if(compression_enabled)
-	{	
-		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".jpg"; // still save with PNG extension for 3DROCS compatibility
+	{
 		vector<int> compression_params;
 		compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
-//		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
 		compression_params.push_back(compression_level);
-		cv::imwrite(color_frame_location_left, color_frame_left, compression_params);
+		color_frame_location_left = constructProductPath("IMAGE",".jpg");
+		cv::imwrite(color_frame_location_left, color_frame, compression_params);
 	}
 	else
 	{
-		color_frame_location_left = default_save_location + "IMAGE_" + camera_name + "_" + sensor_data_time + ".png";
+		color_frame_location_left = constructProductPath("IMAGE",".png");
+		cv::imwrite(color_frame_location_left, color_frame);
+	}
+}
+
+std::string DEM::constructProductPath(std::string identifier, std::string file_ending)
+{
+    return default_save_location + identifier + "_" + camera_name + "_" + sensor_data_time + file_ending;
+}
+
+void DEM::setColorFrameStereo(cv::Mat color_frame_left, cv::Mat color_frame_right)
+{
+	// receive frame from orogen, save it in a document, keep the path name and save it to internal variable
+	if(compression_enabled)
+	{	
+		vector<int> compression_params;
+		compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+		compression_params.push_back(compression_level);
+
+		color_frame_location_left  = constructProductPath("STEREO_LEFT", ".jpg");
+		color_frame_location_right = constructProductPath("STEREO_RIGHT", ".jpg");
+
+		cv::imwrite(color_frame_location_left, color_frame_left, compression_params);
+		cv::imwrite(color_frame_location_right, color_frame_right, compression_params);
+	}
+	else
+	{
+		color_frame_location_left  = constructProductPath("STEREO_LEFT", ".png");
+		color_frame_location_right = constructProductPath("STEREO_RIGHT", ".png");
+
 		cv::imwrite(color_frame_location_left, color_frame_left);
+		cv::imwrite(color_frame_location_right, color_frame_right);
 	}
 }
 
@@ -361,7 +389,7 @@ int DEM::pointCloud2Mesh(bool use_filtered)
     mapTexture2MeshUVnew(tex_mesh, tex_material, tex_files);
     
     // Save mesh obj. Do we need 6 precision?
-    mesh_location = default_save_location + "DEM_" + camera_name + "_" + sensor_data_time + ".obj";
+    mesh_location = constructProductPath("DEM",".obj");
     pcl::io::saveOBJFile (mesh_location, tex_mesh , 3); 
     
     if(compression_enabled)
@@ -430,7 +458,7 @@ void DEM::saveDistanceFrame(std::vector<float> distance)
 	tmp=tmp.mul(1000); //  go to mm distance
 	tmp.convertTo(tmp,CV_16U); // save in uint16
 
-	distance_frame_location = default_save_location + "DIST_" + camera_name + "_" + sensor_data_time + ".png";
+	distance_frame_location = constructProductPath("DIST",".png");
 	cv::imwrite(distance_frame_location, tmp);
 
 	if(compression_enabled)
@@ -446,7 +474,7 @@ void DEM::savePointCloud(bool filtered)
 	if(!timestamp_set)
 		std::cerr << "The timestamp has never been set!\n";  
 		
-	point_cloud_obj_location = default_save_location + "PC_" +  camera_name + "_" + sensor_data_time + ".obj";
+	point_cloud_obj_location = constructProductPath("PC",".obj");
 
     pcl::PolygonMesh mesh;
     
