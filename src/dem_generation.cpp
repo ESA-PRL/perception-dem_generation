@@ -88,7 +88,7 @@ void DEM::setTimestamp(std::string timestamp)
     timestamp_set = 1;
 }
 
-void DEM::setColorFrame(cv::Mat color_frame)
+void DEM::setColorFrame(const cv::Mat& color_frame)
 {
     // receive frame from orogen, save it in a document, keep the path name and save it to internal variable
     if(compression_enabled)
@@ -111,7 +111,7 @@ std::string DEM::constructProductPath(std::string identifier, std::string file_e
     return default_save_location + identifier + "_" + camera_name + "_" + sensor_data_time + file_ending;
 }
 
-void DEM::setColorFrameStereo(cv::Mat color_frame_left, cv::Mat color_frame_right)
+void DEM::setColorFrameStereo(const cv::Mat& color_frame_left, const cv::Mat& color_frame_right)
 {
     // receive frame from orogen, save it in a document, keep the path name and save it to internal variable
     if(compression_enabled)
@@ -123,7 +123,7 @@ void DEM::setColorFrameStereo(cv::Mat color_frame_left, cv::Mat color_frame_righ
         color_frame_location_left  = constructProductPath("STEREO_LEFT", ".jpg");
         color_frame_location_right = constructProductPath("STEREO_RIGHT", ".jpg");
 
-        cv::imwrite(color_frame_location_left, color_frame_left, compression_params);
+        cv::imwrite(color_frame_location_left,  color_frame_left, compression_params);
         cv::imwrite(color_frame_location_right, color_frame_right, compression_params);
     }
     else
@@ -131,7 +131,7 @@ void DEM::setColorFrameStereo(cv::Mat color_frame_left, cv::Mat color_frame_righ
         color_frame_location_left  = constructProductPath("STEREO_LEFT", ".png");
         color_frame_location_right = constructProductPath("STEREO_RIGHT", ".png");
 
-        cv::imwrite(color_frame_location_left, color_frame_left);
+        cv::imwrite(color_frame_location_left,  color_frame_left);
         cv::imwrite(color_frame_location_right, color_frame_right);
     }
 }
