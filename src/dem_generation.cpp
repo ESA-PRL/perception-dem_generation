@@ -96,19 +96,30 @@ void DEM::setColorFrame(const cv::Mat& color_frame)
         vector<int> compression_params;
         compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
         compression_params.push_back(compression_level);
-        color_frame_location_left = constructProductPath("IMAGE",".jpg");
+        color_frame_location_left = constructProductPath("IMAGE",".jpg","LEFT");
         cv::imwrite(color_frame_location_left, color_frame, compression_params);
     }
     else
     {
-        color_frame_location_left = constructProductPath("IMAGE",".png");
+        color_frame_location_left = constructProductPath("IMAGE",".png","LEFT");
         cv::imwrite(color_frame_location_left, color_frame);
     }
 }
 
-std::string DEM::constructProductPath(std::string identifier, std::string file_ending)
+std::string DEM::constructProductPath(std::string identifier, std::string file_ending, std::string left_right)
 {
-    return default_save_location + identifier + "_" + camera_name + "_" + sensor_data_time + file_ending;
+    // append left/right to sensor name if necessary
+    // e.g. LOCCAM_LEFT_IMAGE but not in LOCCAM_DEM
+    if (left_right == "LEFT" || left_right == "RIGHT")
+    {
+        left_right += "_";
+    }
+    else
+    {
+        left_right = "";
+    }
+
+    return default_save_location + camera_name + "_" + left_right + identifier + "_" + sensor_data_time + file_ending;
 }
 
 void DEM::setColorFrameStereo(const cv::Mat& color_frame_left, const cv::Mat& color_frame_right)
@@ -120,16 +131,16 @@ void DEM::setColorFrameStereo(const cv::Mat& color_frame_left, const cv::Mat& co
         compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
         compression_params.push_back(compression_level);
 
-        color_frame_location_left  = constructProductPath("STEREO_LEFT", ".jpg");
-        color_frame_location_right = constructProductPath("STEREO_RIGHT", ".jpg");
+        color_frame_location_left  = constructProductPath("IMAGE", ".jpg", "LEFT");
+        color_frame_location_right = constructProductPath("IMAGE", ".jpg", "RIGHT");
 
         cv::imwrite(color_frame_location_left,  color_frame_left, compression_params);
         cv::imwrite(color_frame_location_right, color_frame_right, compression_params);
     }
     else
     {
-        color_frame_location_left  = constructProductPath("STEREO_LEFT", ".png");
-        color_frame_location_right = constructProductPath("STEREO_RIGHT", ".png");
+        color_frame_location_left  = constructProductPath("IMAGE", ".png", "LEFT");
+        color_frame_location_right = constructProductPath("IMAGE", ".png", "RIGHT");
 
         cv::imwrite(color_frame_location_left,  color_frame_left);
         cv::imwrite(color_frame_location_right, color_frame_right);

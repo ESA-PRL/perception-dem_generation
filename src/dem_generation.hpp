@@ -97,7 +97,7 @@ namespace dem_generation
             Eigen::Vector4f filter_box_min, filter_box_max;
             float leaf_size;
             int k_points;
-            std::string constructProductPath(std::string, std::string);
+            std::string constructProductPath(std::string, std::string, std::string left_right="");
 
     };
 
