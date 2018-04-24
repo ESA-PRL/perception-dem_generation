@@ -6,7 +6,7 @@ add_definitions(${PCL_DEFINITIONS})
 rock_library(dem_generation
     SOURCES dem_generation.cpp
     HEADERS dem_generation.hpp
-    DEPS_PKGCONFIG opencv)
+    DEPS_PKGCONFIG opencv base-lib)
 
 rock_executable(dem_generation_bin Main.cpp
     DEPS dem_generation)

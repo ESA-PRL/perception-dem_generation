@@ -4,12 +4,10 @@
 using namespace std;
 using namespace dem_generation;
 
-
 // creator
 DEM::DEM()
    // : gaussian_kernel(0), calibrationInitialized( false )
 {
-
     camera_set = 0;
     timestamp_set = 0;
     filter_set = 0;
@@ -19,9 +17,6 @@ DEM::DEM()
 
     cloud_input_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
     cloud_filtered_p.reset( new pcl::PointCloud<pcl::PointXYZ> );
-
-        //processing_count=1;
-
 }
 
 void DEM::setCameraParameters(int width, int height, float cx, float cy, float fx, float fy)
@@ -156,7 +151,7 @@ void DEM::setFileDestination(std::string default_save_location, std::string came
 void DEM::distance2pointCloud(std::vector<float> distance)
 {
     if(!camera_set)
-        std::cerr << "The camera properties have not been set yet!\n";
+        LOG_WARN_S << "The camera properties have not been set yet!";
 
     // reserve space tbd is this needed here??
     cloud_input_p->width    = width;
@@ -228,9 +223,9 @@ void DEM::compressProducts(bool enable_compression, int compression_level)
 void DEM::filterPointCloud()
 {
     if(!filter_set)
-        std::cerr << "The pointcloud filter has never been set!\n";
+        LOG_WARN_S << "The pointcloud filter has never been set!";
     if(!pc_set)
-        std::cerr << "The pointcloud has never been set!\n";
+        LOG_WARN_S << "The pointcloud has never been set!";
 
     // Crop Box filter
     pcl::CropBox<pcl::PointXYZ> cb;
@@ -252,10 +247,10 @@ void DEM::filterPointCloud()
 int DEM::pointCloud2Mesh(bool use_filtered)
 {
     if(!timestamp_set)
-        std::cerr << "The timestamp has never been set!\n";
+        LOG_WARN_S << "The timestamp has never been set!";
 
     if(!pc_set)
-        std::cerr << "The pointcloud has never been set!\n";
+        LOG_WARN_S << "The pointcloud has never been set!";
 
     // Normal estimation*
     pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
@@ -265,7 +260,7 @@ int DEM::pointCloud2Mesh(bool use_filtered)
     {
         if(cloud_filtered_p->size()<50)
         {
-            std::cout << "Not enough points to generate DEM" << std::endl;
+            LOG_DEBUG_S << "Not enough points to generate DEM";
             return -1;
         }
         tree->setInputCloud (cloud_filtered_p);
@@ -275,14 +270,16 @@ int DEM::pointCloud2Mesh(bool use_filtered)
     {
         if(cloud_input_p->size()<50)
         {
-            std::cout << "Not enough points to generate DEM" << std::endl;
+            LOG_DEBUG_S << "Not enough points to generate DEM";
             return -1;
         }
         tree->setInputCloud (cloud_input_p);
         n.setInputCloud (cloud_input_p);
     }
     else
-        std::cerr << "You asked for a filtered PC to be put in a mesh but you forgot to call the filter!\n";
+    {
+        LOG_WARN_S << "You asked for a filtered PC to be put in a mesh but you forgot to call the filter!";
+    }
 
     n.setSearchMethod (tree);
     n.setKSearch(k_points);
@@ -297,7 +294,7 @@ int DEM::pointCloud2Mesh(bool use_filtered)
     else if(!use_filtered)
         pcl::concatenateFields (*cloud_input_p, *normals, *cloud_with_normals);
     else
-        std::cerr << "You asked for a filtered PC to be put in a mesh but you forgot to call the filter!\n";
+        LOG_WARN_S << "You asked for a filtered PC to be put in a mesh but you forgot to call the filter!";
 
     // cloud_with_normals = cloud + normals
     //Flip all normals towards the viewer
@@ -340,7 +337,7 @@ int DEM::pointCloud2Mesh(bool use_filtered)
                 triangles.polygons.erase(triangles.polygons.begin()+i);
         }
     }
-    std::cout << "removed " << count_degen << " degenerated faces\n";
+    LOG_DEBUG_S << "removed " << count_degen << " degenerated faces";
 
 
     // Additional vertex information
@@ -463,7 +460,7 @@ void DEM::mapTexture2MeshUVnew (pcl::TextureMesh &tex_mesh, pcl::TexMaterial &te
 void DEM::saveDistanceFrame(std::vector<float> distance)
 {
     if(!timestamp_set)
-        std::cerr << "The timestamp has never been set!\n";
+        LOG_WARN_S << "The timestamp has never been set!";
 
     cv::Mat tmp = cv::Mat(distance).reshape(0,height);
     tmp=tmp.mul(1000); //  go to mm distance
@@ -483,7 +480,7 @@ void DEM::saveDistanceFrame(std::vector<float> distance)
 void DEM::savePointCloud(bool filtered)
 {
     if(!timestamp_set)
-        std::cerr << "The timestamp has never been set!\n";
+        LOG_WARN_S << "The timestamp has never been set!";
 
     point_cloud_obj_location = constructProductPath("PC",".obj");
 

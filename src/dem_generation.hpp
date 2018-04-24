@@ -1,11 +1,9 @@
 #ifndef _DEM_GENERATION_HPP_
 #define _DEM_GENERATION_HPP_
 
-
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-
 
 #include <iostream>
 #include <fstream>
@@ -24,11 +22,10 @@
 #include <pcl/io/ply_io.h>
 #include <pcl/surface/texture_mapping.h>
 #include <time.h>
-
-//#include <pcl/surface/3rdparty/opennurbs/opennurbs_mesh.h>
-
 #include <sys/time.h>
+#include <base-logging/Logging.hpp>
 
+#define BASE_LOG_DEBUG
 
 namespace dem_generation
 {
