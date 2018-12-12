@@ -25,8 +25,6 @@
 #include <sys/time.h>
 #include <base-logging/Logging.hpp>
 
-#define BASE_LOG_DEBUG
-
 namespace dem_generation
 {
     class DEM
