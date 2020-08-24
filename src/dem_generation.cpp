@@ -445,10 +445,6 @@ void DEM::mapTexture2MeshUVnew(pcl::TextureMesh& tex_mesh,
     int point_size = static_cast<int>(tex_mesh.cloud.data.size()) / nr_points;
     float x_, y_, z_;
 
-    // texture coordinates for each mesh
-    std::vector<std::vector<Eigen::Vector2f, Eigen::aligned_allocator<Eigen::Vector2f>>>
-        texture_map;
-
     for (size_t m = 0; m < tex_mesh.tex_polygons.size(); ++m)
     {
         // texture coordinates for each mesh
