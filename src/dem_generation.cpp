@@ -97,7 +97,7 @@ void DEM::setColorFrame(const cv::Mat& color_frame)
     if (compression_enabled)
     {
         vector<int> compression_params;
-        compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+        compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
         compression_params.push_back(compression_level);
         color_frame_location_left = constructProductPath("IMAGE", ".jpg", "LEFT");
         cv::imwrite(color_frame_location_left, color_frame, compression_params);
@@ -131,7 +131,7 @@ void DEM::setColorFrameStereo(const cv::Mat& color_frame_left, const cv::Mat& co
     if (compression_enabled)
     {
         vector<int> compression_params;
-        compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+        compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
         compression_params.push_back(compression_level);
 
         color_frame_location_left = constructProductPath("IMAGE", ".jpg", "LEFT");
